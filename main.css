@@ -1,0 +1,642 @@
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+
+header {
+    background-color: #6f6a6a;
+    color: white;
+    text-align: left;
+    padding: 10px;
+    position: relative; 
+}
+
+#date {
+    display: inline-block;
+}
+
+#date h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+#date p {
+    margin: 0;
+    font-size: 18px;
+}
+
+.user-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+.greeting-message {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+}
+
+.user-icon {
+    cursor: pointer;
+}
+
+.user-icon img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.user-icon:hover {
+    opacity: 0.8;
+}
+
+.main-container {
+    display: flex;
+    padding: 20px;
+    justify-content: space-between;
+}
+
+.left-container {
+    width: 70%; 
+    padding: 20px;
+}
+
+.right-container {
+    width: 30%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/*календарь*/
+.calendar {
+    display: flex;
+    overflow-x: scroll;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f4eaea;
+    border-radius: 8px;
+}
+
+.calendar::-webkit-scrollbar {
+    height: 8px;
+}
+
+.calendar::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 4px;
+}
+
+.day {
+    text-align: center;
+    min-width: 60px;
+    padding: 10px;
+    background-color: #d9d9d9;
+    border-radius: 4px;
+    font-weight: bold;
+    color: black;
+}
+
+.day.active {
+    background-color: #4b4b4b;
+    color: white;
+}
+
+.day.selected {
+    border: 2px solid #555;
+}
+
+.day-habits-container {
+    margin-top: 5px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    padding: 5px;
+    min-height: 50px;
+}
+
+/*контейнер привычек*/
+.habits-scroll-container {
+    height: 100%;
+    overflow-y: auto;
+    width: 100%;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    padding-right: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    position: relative;
+}
+
+.habits-container {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    max-height: calc(100% - 20px);
+    overflow-y: auto;
+}
+
+.habit {
+    background-color: #e0e0e0;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.habits-scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+.habits-scroll-container::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 4px;
+}
+
+.habit-reminder {
+    text-align: center;
+    background-color: #888;
+    border-radius: 8px;
+    padding: 5px;
+    color: white;
+    font-size: 12px;
+}
+
+button.delete-habit {
+    background-color: #814141;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    line-height: 30px;
+    cursor: pointer;
+}
+
+button.complete-habit {
+    background-color: #5b835b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    line-height: 30px;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:focus {
+    outline: none;
+}
+
+#add-habit-button {
+    padding: 10px 20px;
+    background-color: #555555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+#add-habit-button:hover {
+    background-color: #2b2b2b;
+}
+
+#delete-confirm-modal {
+    display: none;
+    position: fixed;
+    z-index: 2;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+#delete-confirm-modal .modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+.progress-container {
+    margin-bottom: 20px;
+}
+
+.chart {
+    background-color: #803f3f;
+    width: 100px;
+    height: 150px;
+}
+
+.rewards-container {
+    background-color: #f4f4f4;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.rewards-container h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.achievements-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding-right: 10px;
+}
+
+.achievement {
+    width: 100%;
+    height: 150px;
+    background-color: #ccc;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.achievement:hover {
+    transform: scale(1.03);
+}
+
+.earned {
+    filter: grayscale(0%) brightness(100%);
+}
+
+.available {
+    filter: grayscale(100%) brightness(60%);
+}
+
+.achievement img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%) brightness(60%);
+    transition: filter 0.3s ease;
+}
+
+#achievement-modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+#achievement-modal .modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    text-align: center;
+}
+
+#achievement-modal .close-achievement-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #333;
+}
+
+#achievement-modal .close-achievement-button:hover {
+    color: red;
+}
+
+#achievement-title {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+#achievement-status {
+    font-size: 18px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+#achievement-img {
+    width: 80%;
+    max-width: 300px;
+    height: auto;
+    object-fit: cover;
+    margin-bottom: 20px;
+}
+
+#achievement-description {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #555;
+}
+
+#achievement-modal .close-achievement-button:hover {
+    color: red;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+    font-size: 16px;
+}
+
+input[type="text"],
+textarea {
+    width: 95%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+textarea {
+    height: 40px;
+    resize: none;
+}
+
+.habit-recurrence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.habit-recurrence button {
+    padding: 10px;
+    border: none;
+    background-color: #d3d3d3;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.habit-recurrence button:hover {
+    background-color: #bbb;
+}
+
+.habit-reminder-toggle {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+input[type="time"] {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button#submit-habit {
+    width: 100%;
+    padding: 10px;
+    background-color: #555555;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+button#submit-habit:hover {
+    background-color: #2b2b2b;
+}
+
+.habit-recurrence button.selected {
+    background-color: #555555;
+    color: white;
+}
+
+.habit-recurrence button:hover {
+    background-color: #bbb;
+}
+
+.progress-container {
+    margin-bottom: 20px;
+    width: 100%;
+    background-color: #f4f4f4;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.progress-container h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #4CAF50;
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+#progress-text {
+    font-size: 18px;
+    color: #333;
+    margin-top: 10px;
+}
+
+#progress-container {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+#progress-bar {
+    height: 20px;
+    width: 0%;
+    background-color: #4caf50;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+    line-height: 20px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding-top: 50px;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+}
+
+.modal-content h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #aaa;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.close-button:hover {
+    color: black;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+form label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 5px;
+    display: block;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+input[type="file"] {
+    padding: 5px;
+}
+
+.avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 15px auto;
+    display: block;
+    border: 2px solid #ccc;
+    background-color: #f4f4f4;
+}
+
+button#save-profile {
+    width: 100%;
+    padding: 12px;
+    background-color: #555555;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button#save-profile:hover {
+    background-color: #333333;
+}

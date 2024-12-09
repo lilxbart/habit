@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker Main</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+
+    <header>
+        <div id="date">
+            <h1>Сегодня</h1>
+            <p id="current-date"></p> 
+        </div>
+
+        <div id="user-container" class="user-container">
+        <div id="greeting-message" class="greeting-message">
+            Здравствуйте, <span id="user-nickname">Никнейм</span>!
+        </div>
+        
+        <div id="user-icon" class="user-icon">
+            <img src="https://via.placeholder.com/40" alt="User Icon">
+        </div>
+    </div>
+    </header>
+
+
+    <div class="main-container">
+        <div class="left-container">
+            <div class="calendar" id="calendar">
+                <div class="day">Пн<br><span>00.00</span></div>
+            </div>
+
+            <div class="habits-scroll-container">
+                <div class="habits-container" id="habits-container">
+                </div>
+            </div>
+
+            <button id="add-habit-button">Добавить привычку</button>
+        </div>
+
+        <div class="right-container">
+            <div class="progress-container">
+                <h2>ПРОГРЕСС</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p id="progress-text">0% Выполнено</p>
+            </div>
+            <div class="rewards-container">
+                <h2>ВАШИ ДОСТИЖЕНИЯ</h2>
+                
+                <div class="achievements-list">
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+
+
+    <div id="habit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>НОВАЯ ПРИВЫЧКА</h2>
+
+            <label for="habit-name">НАЗВАНИЕ</label>
+            <input type="text" id="habit-name" placeholder="Название привычки" required>
+
+            <label for="habit-description">ОПИСАНИЕ</label>
+            <textarea id="habit-description" placeholder="Описание вашей привычки"></textarea>
+
+            <label for="habit-recurrence">ПОВТОРЕНИЕ</label>
+            <div class="habit-recurrence">
+                <button class="day">ПН</button>
+                <button class="day">ВТ</button>
+                <button class="day">СР</button>
+                <button class="day">ЧТ</button>
+                <button class="day">ПТ</button>
+                <button class="day">СБ</button>
+                <button class="day">ВС</button>
+                <button class="day">КАЖДЫЙ ДЕНЬ</button>
+            </div>
+
+            <label for="habit-reminder">НАПОМИНАНИЕ</label>
+            <div class="habit-reminder-toggle">
+                <span>да</span>
+                <input type="checkbox" id="habit-reminder">
+            </div>
+
+            <input type="time" id="habit-time" value="10:00">
+
+            <button id="submit-habit">ДОБАВИТЬ</button>
+        </div>
+    </div>
+    
+
+    
+    <div id="achievement-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-achievement-button">&times;</span>
+            <h2 id="achievement-title"></h2>
+            <div id="achievement-status"></div>
+            <img id="achievement-img" src="" alt="Achievement Image">
+            <p id="achievement-description"></p>
+        </div>
+    </div>
+
+
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-content">
+            <p id="delete-confirm-message"></p>
+            <button id="confirm-delete">Да</button>
+            <button id="cancel-delete">Нет</button>
+        </div>
+    </div>
+
+<div id="user-profile-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>ВАШ ПРОФИЛЬ</h2>
+        <form id="user-profile-form">
+            <div class="form-group">
+                <label for="name">ИМЯ</label>
+                <input type="text" id="name" name="name" placeholder="Введите ваше имя">
+            </div>
+            <div class="form-group">
+                <label for="nickname">НИК</label>
+                <input type="text" id="nickname" name="nickname" placeholder="Введите ваш никнейм">
+            </div>
+            <div class="form-group">
+                <label for="email">ПОЧТА</label>
+                <input type="email" id="email" name="email" placeholder="Введите ваш email">
+            </div>
+            <div class="form-group">
+                <label for="avatar">АВАТАР</label>
+                <input type="file" id="avatar" name="avatar">
+                <img id="avatar-img" src="#" alt="." class="avatar-preview" />
+            </div>
+            <button type="submit" id="save-profile">СОХРАНИТЬ</button>
+        </form>
+    </div>
+</div>
+
+
+
+
+    <script src="main.js"></script>
+</body>
+</html>

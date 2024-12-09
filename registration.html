@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер привычек</title>
+    <link rel="stylesheet" href="registration.css">
+</head>
+<body>
+    <header>
+        <h1>Трекер привычек</h1>
+    </header>
+
+    <div id="auth-container">
+        <button id="toggle-button">Перейти к входу в систему</button>
+        <form id="signup-form" class="auth-form">
+            <h2>ЗАРЕГИСТРИРОВАТЬСЯ</h2>
+            <input type="text" id="signup-username" placeholder="ИМЯ" required>
+            <input type="email" id="signup-email" placeholder="Email" required>
+            <input type="password" id="signup-password" placeholder="ПАРОЛЬ" required>
+            <button type="submit">ЗАРЕГИСТРИРОВАТЬСЯ</button>
+        </form>
+
+        <form id="signin-form" class="auth-form hidden">
+            <h2>ВОЙТИ</h2>
+            <input type="text" id="signin-username" placeholder="ИМЯ" required>
+            <input type="password" id="signin-password" placeholder="ПАРОЛЬ" required>
+            <button type="submit">ВОЙТИ</button>
+        </form>
+
+        <a id="main-page-link" href="main.html" class="hidden">Перейти на главную страницу</a>
+
+    </div>
+
+    <script src="registration.js"></script>
+</body>
+</html>
