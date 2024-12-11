@@ -8,7 +8,7 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 # Настройка подключения к базе данных PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
