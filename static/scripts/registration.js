@@ -24,7 +24,8 @@ signinForm.addEventListener('submit', function(e) {
     if (username && password) {
         console.log('Logged in as:', username);
 
-        mainPageLink.click();
+        // Перенаправление на следующую страницу
+        window.location.href = '/main.html'; // Укажите путь к вашей странице
     } else {
         alert('Please fill in all fields.');
     }
