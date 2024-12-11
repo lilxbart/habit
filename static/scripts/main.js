@@ -403,49 +403,21 @@ const achievements = [
         name: "Первые шаги", 
         achieved: false,
         description: "Сделай первый шаг к своим целям, начни отслеживать хотя бы одну привычку.",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
+        img: "/1111.png"
 
     },
     { 
         name: "Мастер планирования", 
         achieved: false,
         description: "Заведи привычки на месяц, заполнив свой календарь целей и задач.",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
+        img: "/1111.png"
 
     },
     { 
         name: "Пять дней подряд", 
         achieved: true,
         description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
-
-    },
-    { 
-        name: "Пять дней подряд", 
-        achieved: true,
-        description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
-
-    },
-    { 
-        name: "Пять дней подряд", 
-        achieved: true,
-        description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
-
-    },
-    { 
-        name: "Пять дней подряд", 
-        achieved: true,
-        description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
-
-    },
-    { 
-        name: "Пять дней подряд", 
-        achieved: true,
-        description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
+        img: "/1111.png"
 
     },
     { 
@@ -670,3 +642,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedNickname) document.getElementById('nickname').value = savedNickname;
     if (savedEmail) document.getElementById('email').value = savedEmail;
 });
+
+
+

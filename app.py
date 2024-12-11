@@ -8,13 +8,10 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 # Настройка подключения к базе данных PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-
-
 
 # Модель пользователя
 class User(db.Model):
@@ -49,23 +46,44 @@ def registration_page():
 # Маршрут для регистрации
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.json
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-
-    if not all([username, email, password]):
-        return jsonify({"message": "Заполните все поля"}), 400
-
-    new_user = User(username=username, email=email, password=bcrypt.generate_password_hash(password).decode('utf-8'))
-
     try:
+        data = request.get_json()  # Убедимся, что данные приходят как JSON
+        print("Полученные данные:", data)
+
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+
+        print("Имя пользователя:", username, "Email:", email, "Пароль:", password)
+
+        # Проверяем, заполнены ли все поля
+        if not username or not email or not password:
+            print("Ошибка: не все поля заполнены")
+            return jsonify({"message": "Заполните все поля"}), 400
+
+        if len(password) < 6:
+            print("Ошибка: слишком короткий пароль")
+            return jsonify({"message": "Пароль должен содержать не менее 6 символов"}), 400
+
+        # Проверяем наличие пользователя
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing_user:
+            print("Ошибка: пользователь уже существует")
+            return jsonify({"message": "Пользователь с таким именем или почтой уже существует"}), 409
+
+        # Хэшируем пароль и создаем нового пользователя
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(username=username, email=email, password=hashed_password)
+
         db.session.add(new_user)
         db.session.commit()
-        return jsonify({"message": "User registered successfully"}), 201
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"message": "Username or email already exists"}), 409
+
+        print("Пользователь успешно зарегистрирован")
+        return jsonify({"message": "Пользователь успешно зарегистрирован"}), 201
+    except Exception as e:
+        print("Ошибка:", e)
+        return jsonify({"message": "Ошибка сервера"}), 500
+
 
 
 # Маршрут для входа
