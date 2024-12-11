@@ -29,9 +29,15 @@
 
     <div class="main-container">
         <div class="left-container">
-            <div class="calendar" id="calendar">
-                <div class="day">Пн<br><span>00.00</span></div>
+            
+            <div class="calendar-controls">
+                <button id="prev-month">&lt;</button>
+                <span id="current-month" class="current-month">Декабрь</span>
+                <button id="next-month">&gt;</button>
             </div>
+            <div class="calendar" id="calendar"></div>
+            
+            
 
             <div class="habits-scroll-container">
                 <div class="habits-container" id="habits-container">
@@ -67,9 +73,11 @@
             <h2>НОВАЯ ПРИВЫЧКА</h2>
 
             <label for="habit-name">НАЗВАНИЕ</label>
+
             <input type="text" id="habit-name" placeholder="Название привычки" required>
 
             <label for="habit-description">ОПИСАНИЕ</label>
+
             <textarea id="habit-description" placeholder="Описание вашей привычки"></textarea>
 
             <label for="habit-recurrence">ПОВТОРЕНИЕ</label>
