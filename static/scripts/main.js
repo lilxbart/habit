@@ -310,66 +310,59 @@ function addHabitWithRecurrence(habit) {
 
 
 //форма новой привычки
+
 submitHabitButton.addEventListener('click', async () => {
-    const habitName = document.getElementById('habit-name').value;
-    const habitDescription = document.getElementById('habit-description').value;
+    const habitName = document.getElementById('habit-name').value.trim();
+    const habitDescription = document.getElementById('habit-description').value.trim();
     const reminder = document.getElementById('habit-reminder').checked;
     const time = document.getElementById('habit-time').value;
+    const startDate = selectedDate;
 
-    if (habitName && selectedDate) {
-        const reminderText = reminder ? `Напоминание: ${time}` : 'Без напоминания';
+    if (!habitName) {
+        alert('Введите название привычки!');
+        return;
+    }
 
-        const newHabit = {
-            name: habitName,
-            description: habitDescription,
-            reminderText: reminderText,
-            recurrence: selectedDays.join(', ') || 'Нет',
-        };
+    const newHabit = {
+        user_id: 1, // Замените на динамический ID пользователя, если требуется
+        habit_name: habitName,
+        description: habitDescription,
+        reminder_text: reminder ? `Напоминание: ${time}` : null,
+        recurrence: selectedDays,
+        startDate: startDate
+    };
 
-        addHabitWithRecurrence(newHabit);
-        displayHabitsForSelectedDate();
+    try {
+        const response = await fetch('/api/habits', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: 1,
+                habit_name: "Пример привычки",
+                description: "Описание привычки",
+                reminder_text: "Напоминание: 10:00",
+                recurrence: "КАЖДЫЙ ДЕНЬ"
+            }),
+        });
+        
 
-        try {
-            // Отправляем данные на сервер
-            const response = await fetch('http://127.0.0.1:5000', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: habitName,
-                    description: habitDescription,
-                    reminder: reminder,
-                    time: reminder ? time : null,
-                    days: selectedDays,
-                    startDate: selectedDate,
-                }),
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Привычка успешно добавлена на сервер:', result);
-                alert('Привычка успешно добавлена!');
-            } else {
-                console.error('Ошибка при отправке данных на сервер:', response.status);
-                alert('Произошла ошибка при добавлении привычки на сервер.');
-            }
-        } catch (error) {
-            console.error('Ошибка сети:', error);
-            alert('Произошла ошибка сети. Проверьте подключение.');
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
         }
-        // Закрываем модальное окно и сбрасываем форму
+
+        const result = await response.json();
+        console.log('Привычка успешно добавлена:', result);
+
+        // Закрываем модальное окно
         modal.style.display = 'none';
-        document.getElementById('habit-name').value = '';
-        document.getElementById('habit-description').value = '';
-        document.getElementById('habit-reminder').checked = false;
-        document.getElementById('habit-time').value = '10:00';
-        selectedDays = [];
-        recurrenceButtons.forEach(button => button.classList.remove('selected'));
-    } else {
-        alert('Пожалуйста, выберите день и введите название привычки');
+    } catch (error) {
+        console.error('Ошибка при отправке привычки:', error);
+        alert('Не удалось добавить привычку. Проверьте настройки сервера.');
     }
 });
+
 
 
 

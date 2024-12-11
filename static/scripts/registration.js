@@ -15,18 +15,83 @@ toggleButton.addEventListener('click', function () {
     }
 });
 
-signinForm.addEventListener('submit', function(e) {
+
+
+
+signupForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const username = document.getElementById('signin-username').value;
-    const password = document.getElementById('signin-password').value;
+    const username = document.getElementById('signup-username').value.trim();
+    const password = document.getElementById('signup-password').value.trim();
+
+    if (!username || !password) {
+        alert('Заполните все поля');
+        return;
+    }
 
     if (username && password) {
-        console.log('Logged in as:', username);
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
 
-        // Перенаправление на следующую страницу
-        window.location.href = '/main'; // Укажите путь к вашей странице
+            if (!response.ok) {
+                throw new Error(`Ошибка HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Пользователь зарегистрирован:', result);
+
+            alert('Регистрация успешна!');
+            toggleButton.click();
+        } catch (error) {
+            console.error('Ошибка при регистрации:', error);
+            alert('Не удалось зарегистрировать пользователя.');
+        }
     } else {
-        alert('Please fill in all fields.');
+        alert('Заполните все поля.');
+    }
+});
+
+
+
+signinForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const username = document.getElementById('signin-username').value.trim();
+    const password = document.getElementById('signin-password').value.trim();
+
+    if (username && password) {
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Ошибка HTTP: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Вход выполнен:', result);
+
+            if (result.success) {
+                window.location.href = '/main';
+            } else {
+                alert('Неверное имя пользователя или пароль.');
+            }
+        } catch (error) {
+            console.error('Ошибка при входе:', error);
+            alert('Не удалось войти. Проверьте соединение с сервером.');
+        }
+    } else {
+        alert('Заполните все поля.');
     }
 });

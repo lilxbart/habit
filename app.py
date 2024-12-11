@@ -8,10 +8,12 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 # Настройка подключения к базе данных PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+
 
 
 # Модель пользователя
@@ -96,35 +98,20 @@ def get_user_data():
     return jsonify({"message": "User not found"}), 404
 
 
+
+habits = []
+
 # Маршрут для создания новой привычки
-@app.route('/api/habits', methods=['POST'])
-def create_habit():
-    try:
+@app.route('/api/habits', methods=['GET', 'POST'])
+def handle_habits():
+    if request.method == 'POST':
+        # Обработка POST
         data = request.get_json()
-        user_id = data.get('user_id')
-        habit_name = data.get('habit_name')
-        description = data.get('description')
-        reminder_text = data.get('reminder_text')
-        recurrence = data.get('recurrence')
+        print("POST запрос - данные:", data)
+        return jsonify({"success": True, "message": "Habit created successfully"}), 201
+    elif request.method == 'GET':
+        return jsonify(habits)
 
-        if not all([user_id, habit_name]):
-            return jsonify({"message": "User ID and habit name are required"}), 400
-
-        new_habit = Habit(
-            user_id=user_id,
-            name=habit_name,
-            description=description,
-            reminder_text=reminder_text,
-            recurrence=recurrence
-        )
-
-        db.session.add(new_habit)
-        db.session.commit()
-        return jsonify({"success": True, "message": "Habit created successfully", "habit_id": new_habit.id}), 201
-    except Exception as e:
-        db.session.rollback()
-        print("Error:", e)
-        return jsonify({"success": False, "message": "Failed to create habit"}), 400
 
 
 # Маршрут для удаления привычки
