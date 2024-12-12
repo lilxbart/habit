@@ -107,18 +107,19 @@ async function loginUser(username, password) {
 }
 
 // Обработка входа
-signupForm.addEventListener('submit', async function (e) {
-    e.preventDefault(); 
+signinForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
 
     const username = document.getElementById('signin-username').value.trim();
     const password = document.getElementById('signin-password').value.trim();
+
+    console.log('Данные для входа:', { username, password });
 
     if (username && password) {
         const response = await loginUser(username, password);
 
         if (response.success) {
-            // Сохраняем user_id в localStorage
-            localStorage.setItem('user_id', response.user_id);
+            localStorage.setItem('username', username);
             window.location.href = '/main';
         } else {
             alert('Ошибка входа: ' + response.message);
