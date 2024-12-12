@@ -3,12 +3,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from werkzeug.utils import secure_filename
+from sqlalchemy import Column, Integer, String, LargeBinary
+import os
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
-# Настройка подключения к базе данных PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -20,6 +22,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    avatar = db.Column(LargeBinary, nullable=True) 
 
 
 # Модель привычки
@@ -35,6 +38,21 @@ class Habit(db.Model):
     completed = db.Column(db.Boolean, default=False)
 
     user = db.relationship('User', backref=db.backref('habits', lazy=True))
+
+
+
+
+UPLOAD_FOLDER = 'static/avatars'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 
 # Главная страница для регистрации
@@ -89,13 +107,18 @@ def register():
 # Маршрут для входа
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.json
+    data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
     user = User.query.filter_by(username=username).first()
     if user and bcrypt.check_password_hash(user.password, password):
-        return jsonify({"success": True, "message": "Login successful", "user_id": user.id})
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_id": user.id,
+            "username": user.username
+        }), 200
     return jsonify({"success": False, "message": "Invalid username or password"}), 401
 
 
@@ -103,17 +126,6 @@ def login():
 @app.route('/main')
 def main_page():
     return render_template('main.html')
-
-
-# Маршрут для получения данных пользователя (например, имя пользователя, прогресс и т.д.)
-@app.route('/api/user-data')
-def get_user_data():
-    user_id = request.args.get('user_id')
-    user = User.query.get(user_id)
-    if user:
-        progress_days = Habit.query.filter_by(user_id=user_id, completed=True).count()
-        return jsonify({"username": user.username, "progressDays": progress_days})
-    return jsonify({"message": "User not found"}), 404
 
 
 
@@ -152,6 +164,69 @@ def complete_habit(habit_id):
         db.session.commit()
         return jsonify({"success": True, "message": "Habit marked as completed"})
     return jsonify({"success": False, "message": "Habit not found"}), 404
+
+
+
+# Маршрут для окна профиля
+@app.route('/api/update-profile', methods=['POST'])
+def update_profile():
+    try:
+        username = request.form.get('username')
+        new_username = request.form.get('new_username')
+        email = request.form.get('email')
+
+        print(f"Полученные данные: username={username}, new_username={new_username}, email={email}")
+
+        # Найти пользователя и обновить данные
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            print("Пользователь не найден")
+            return jsonify({"message": "User not found"}), 404
+
+        if new_username:
+            user.username = new_username
+        if email:
+            user.email = email
+
+        db.session.commit()
+        print("Данные пользователя успешно обновлены")
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Ошибка при обновлении профиля: {e}")
+        return jsonify({"message": f"Error updating profile: {str(e)}"}), 500
+
+
+
+
+
+
+
+@app.route('/api/user-data', methods=['GET'])
+def get_user_data():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({"message": "Username is required"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({
+            "username": user.username,
+            "email": user.email,
+            "avatar": user.avatar or "/static/avatars/default.png"
+        }), 200
+    return jsonify({"message": "User not found"}), 404
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':

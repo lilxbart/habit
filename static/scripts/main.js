@@ -136,6 +136,7 @@ updateCalendar();
 
 
 
+
 addHabitButton.addEventListener('click', () => {
     if (selectedDate) {
         modal.style.display = 'flex';
@@ -366,6 +367,25 @@ submitHabitButton.addEventListener('click', async () => {
 
 
 
+
+document.addEventListener('DOMContentLoaded', function () {
+    const userNicknameElement = document.getElementById('user-nickname');
+    const username = localStorage.getItem('username');
+
+    if (username) {
+        userNicknameElement.textContent = username;
+    } else {
+        console.error('Имя пользователя не найдено в localStorage.');
+    }
+});
+
+
+
+
+
+
+
+
 // Функция для получения привычек с сервера
 async function fetchHabitsFromServer() {
     try {
@@ -561,23 +581,9 @@ function filterHabitsByDate(habits, date) {
 
 
 
-localStorage.setItem('userNickname', 'ivan_ivanov');
-const userNickname = localStorage.getItem('userNickname');
-document.getElementById('user-nickname').textContent = userNickname;
 
 
 
-
-
-
-
-const userIcon = document.getElementById('user-icon');
-
-function showUserProfile() {
-    alert("Это место для информации о пользователе.");
-}
-
-userIcon.addEventListener('click', showUserProfile);
 
 
 
@@ -585,11 +591,15 @@ const userProfileModal = document.getElementById('user-profile-modal');
 const avatarInput = document.getElementById('avatar');
 const avatarPreview = document.getElementById('avatar-img');
 const saveButton = document.getElementById('save-profile');
+const userIcon = document.getElementById('user-icon'); // Ваш аватар пользователя
 
-userIcon.addEventListener('click', () => {
+// Открытие модального окна
+userIcon.addEventListener('click', async () => {
     userProfileModal.style.display = 'flex';
+    await loadUserProfile(); // Загружаем данные с сервера
 });
 
+// Закрытие модального окна
 closeButton.addEventListener('click', () => {
     userProfileModal.style.display = 'none';
 });
@@ -600,48 +610,129 @@ window.addEventListener('click', (event) => {
     }
 });
 
+// Предварительный просмотр аватара
 avatarInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function (e) {
-            avatarPreview.src = e.target.result; 
-            userIcon.querySelector('img').src = e.target.result;
-            localStorage.setItem('userAvatar', e.target.result);
+            avatarPreview.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
 });
 
-saveButton.addEventListener('click', (event) => {
-    event.preventDefault();
 
-    const name = document.getElementById('name').value;
-    const nickname = document.getElementById('nickname').value;
-    const email = document.getElementById('email').value;
-
-    localStorage.setItem('userName', name);
-    localStorage.setItem('userNickname', nickname);
-    localStorage.setItem('userEmail', email);
-
-    userProfileModal.style.display = 'none';
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar) {
-        userIcon.querySelector('img').src = savedAvatar;
-        avatarPreview.src = savedAvatar;
+// Загрузка данных пользователя с сервера
+async function loadUserProfile() {
+    const username = localStorage.getItem('username');
+    if (!username) {
+        alert('Пользователь не авторизован.');
+        return;
     }
 
-    const savedName = localStorage.getItem('userName');
-    const savedNickname = localStorage.getItem('userNickname');
-    const savedEmail = localStorage.getItem('userEmail');
+    try {
+        const response = await fetch(`/api/user-data?username=${username}`);
+        const userData = await response.json();
 
-    if (savedName) document.getElementById('name').value = savedName;
-    if (savedNickname) document.getElementById('nickname').value = savedNickname;
-    if (savedEmail) document.getElementById('email').value = savedEmail;
+        if (response.ok) {
+            document.getElementById('name').value = userData.username || '';
+            document.getElementById('email').value = userData.email || '';
+        } else {
+            alert(userData.message || 'Ошибка загрузки профиля.');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+    }
+}
+
+
+// Сохранение данных пользователя на сервере
+saveButton.addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    const userId = localStorage.getItem('user_id');
+    const username = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const avatar = document.getElementById('avatar').files[0];
+
+    if (!userId || !username || !email) {
+        alert('Заполните все поля.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('username', username);
+    formData.append('email', email);
+    if (avatar) {
+        formData.append('avatar', avatar);
+    }
+
+    try {
+        const response = await fetch('/api/update-profile', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert('Профиль успешно обновлен!');
+            if (result.avatar) {
+                avatarPreview.src = result.avatar;
+            }
+        } else {
+            alert('Ошибка обновления профиля.');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения профиля:', error);
+        alert('Произошла ошибка. Попробуйте позже.');
+    }
+});
+
+// При загрузке страницы
+document.addEventListener('DOMContentLoaded', async () => {
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+        await loadUserProfile(); // Загружаем данные профиля при загрузке страницы
+    }
 });
 
 
 
+
+document.getElementById('save-profile').addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    const username = localStorage.getItem('username');
+    const newUsername = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    if (!username || !newUsername || !email) {
+        alert('Заполните все поля.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('new_username', newUsername);
+    formData.append('email', email);
+
+    try {
+        const response = await fetch('/api/update-profile', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message || 'Профиль успешно обновлен!');
+            localStorage.setItem('username', newUsername);
+        } else {
+            alert(result.message || 'Ошибка обновления профиля.');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения профиля:', error);
+        alert('Произошла ошибка. Попробуйте позже.');
+    }
+});

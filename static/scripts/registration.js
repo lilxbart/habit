@@ -113,18 +113,21 @@ signinForm.addEventListener('submit', async function (e) {
     const username = document.getElementById('signin-username').value.trim();
     const password = document.getElementById('signin-password').value.trim();
 
-    console.log('Данные для входа:', { username, password });
-
     if (username && password) {
-        const response = await loginUser(username, password);
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
 
-        if (response.success) {
+        const result = await response.json();
+        if (response.ok) {
             localStorage.setItem('username', username);
             window.location.href = '/main';
         } else {
-            alert('Ошибка входа: ' + response.message);
+            alert(result.message || 'Ошибка входа.');
         }
     } else {
-        alert('Пожалуйста, заполните все поля.');
+        alert('Заполните все поля.');
     }
 });
