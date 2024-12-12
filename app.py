@@ -15,30 +15,31 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Модель пользователя
 class User(db.Model):
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     avatar = db.Column(LargeBinary, nullable=True) 
 
+    habits = db.relationship('Habit', back_populates='user', lazy=True)
 
-# Модель привычки
 class Habit(db.Model):
     __tablename__ = 'habits'
+
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(200))
-    reminder_text = db.Column(db.String(100))
-    recurrence = db.Column(db.String(50))
-    date_created = db.Column(db.Date, default=datetime.today)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Внешний ключ
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    recurrence = db.Column(db.String(50), nullable=True)  # Новый столбец
+    reminder_text = db.Column(db.String(255), nullable=True)
+    reminder_time = db.Column(db.Time, nullable=True)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
     completed = db.Column(db.Boolean, default=False)
 
-    user = db.relationship('User', backref=db.backref('habits', lazy=True))
-
+    user = db.relationship('User', back_populates='habits')
 
 
 
@@ -126,6 +127,49 @@ def login():
 @app.route('/main')
 def main_page():
     return render_template('main.html')
+
+
+
+@app.route('/api/habits', methods=['POST'])
+def create_habit():
+    try:
+        data = request.get_json()
+        print("Полученные данные:", data)  # Отладочный вывод данных
+
+        user_id = data.get('user_id')
+        name = data.get('name')
+
+        if not all([user_id, name]):  # Проверяем наличие обязательных данных
+            print("Ошибка: отсутствуют обязательные поля user_id или name")
+            return jsonify({"message": "User ID and name are required"}), 400
+
+        # Прочие данные
+        description = data.get('description', None)
+        recurrence = ','.join(data.get('recurrence', []))
+        reminder_text = data.get('reminder_text', None)
+        reminder_time = data.get('reminder_time', None)
+
+        # Создаем новую привычку
+        new_habit = Habit(
+            user_id=user_id,
+            name=name,
+            description=description,
+            recurrence=recurrence,
+            reminder_text=reminder_text,
+            reminder_time=reminder_time,
+            date_created=datetime.now(),
+            completed=False
+        )
+
+        db.session.add(new_habit)
+        db.session.commit()
+        print("Привычка успешно добавлена")
+        return jsonify({"message": "Habit added successfully"}), 201
+
+    except Exception as e:
+        print(f"Ошибка при создании привычки: {e}")
+        return jsonify({"message": "Error while creating habit"}), 500
+
 
 
 

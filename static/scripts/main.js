@@ -224,46 +224,6 @@ function markHabitAsCompleted(index, habitElement) {
     }
 }
 
-//добавление привычки в выбранный день
-submitHabitButton.addEventListener('click', () => {
-    console.log('Клик по кнопке "Добавить"!');
-
-    const habitName = document.getElementById('habit-name').value.trim();
-    const habitDescription = document.getElementById('habit-description').value.trim();
-    const reminder = document.getElementById('habit-reminder').checked;
-    const time = document.getElementById('habit-time').value;
-    const startDate = selectedDate;
-
-    if (!habitName) {
-        alert('Пожалуйста, введите название привычки!');
-        console.log('Ошибка: Название не введено');
-        return;
-    }
-
-    const newHabit = {
-        name: habitName,
-        description: habitDescription,
-        reminderText: reminder ? `Напоминание: ${time}` : 'Без напоминания',
-        days: selectedDays,
-        startDate: startDate
-    };
-
-    console.log('Новая привычка:', newHabit);
-
-    addHabitWithRecurrence(newHabit);
-    displayHabitsForSelectedDate();
-
-    modal.style.display = 'none';
-
-    document.getElementById('habit-name').value = '';
-    document.getElementById('habit-description').value = '';
-    document.getElementById('habit-reminder').checked = false;
-    document.getElementById('habit-time').value = '10:00';
-    selectedDays = [];
-    recurrenceButtons.forEach(button => button.classList.remove('selected'));
-
-    console.log('Привычка добавлена и окно закрыто');
-});
 //добавление привычки на конкретную дату
 function addHabitForDate(date, habit) {
     const dateStr = date.toISOString().split('T')[0];
@@ -277,7 +237,6 @@ function addHabitForDate(date, habit) {
         habitsData[dateStr].push(habit);
     }
 }
-
 
 //добавление привычек с учётом повторений
 function addHabitWithRecurrence(habit) {
@@ -308,11 +267,10 @@ function addHabitWithRecurrence(habit) {
 }
 
 
-
-
 //форма новой привычки
-
 submitHabitButton.addEventListener('click', async () => {
+    console.log('Клик по кнопке "Добавить"!');
+
     const habitName = document.getElementById('habit-name').value.trim();
     const habitDescription = document.getElementById('habit-description').value.trim();
     const reminder = document.getElementById('habit-reminder').checked;
@@ -321,17 +279,28 @@ submitHabitButton.addEventListener('click', async () => {
 
     if (!habitName) {
         alert('Введите название привычки!');
+        console.log('Ошибка: Название не введено');
         return;
     }
 
+    const userId = localStorage.getItem('user_id') || 1; // Используйте ID пользователя из localStorage
     const newHabit = {
-        user_id: 1, // Замените на динамический ID пользователя, если требуется
-        habit_name: habitName,
+        user_id: localStorage.getItem('user_id'),
+        name: habitName,
         description: habitDescription,
+        recurrence: selectedDays.join(','),  // Преобразуем массив в строку
         reminder_text: reminder ? `Напоминание: ${time}` : null,
-        recurrence: selectedDays,
-        startDate: startDate
+        reminder_time: reminder ? time : null,
+        startDate: selectedDate,
     };
+
+    console.log("Отправляемая привычка:", newHabit);
+
+    const response = await fetch('/api/habits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newHabit),
+    });
 
     try {
         const response = await fetch('/api/habits', {
@@ -339,15 +308,8 @@ submitHabitButton.addEventListener('click', async () => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                user_id: 1,
-                habit_name: "Пример привычки",
-                description: "Описание привычки",
-                reminder_text: "Напоминание: 10:00",
-                recurrence: "КАЖДЫЙ ДЕНЬ"
-            }),
+            body: JSON.stringify(newHabit),
         });
-        
 
         if (!response.ok) {
             throw new Error(`Ошибка HTTP: ${response.status}`);
@@ -356,14 +318,25 @@ submitHabitButton.addEventListener('click', async () => {
         const result = await response.json();
         console.log('Привычка успешно добавлена:', result);
 
+        // Добавление привычки в локальный список
+        addHabitWithRecurrence(newHabit);
+        displayHabitsForSelectedDate();
+
         // Закрываем модальное окно
         modal.style.display = 'none';
+        document.getElementById('habit-name').value = '';
+        document.getElementById('habit-description').value = '';
+        document.getElementById('habit-reminder').checked = false;
+        document.getElementById('habit-time').value = '10:00';
+        selectedDays = [];
+        recurrenceButtons.forEach(button => button.classList.remove('selected'));
+
+        console.log('Привычка добавлена и окно закрыто');
     } catch (error) {
         console.error('Ошибка при отправке привычки:', error);
         alert('Не удалось добавить привычку. Проверьте настройки сервера.');
     }
 });
-
 
 
 
@@ -599,7 +572,6 @@ userIcon.addEventListener('click', async () => {
     await loadUserProfile(); // Загружаем данные с сервера
 });
 
-// Закрытие модального окна
 closeButton.addEventListener('click', () => {
     userProfileModal.style.display = 'none';
 });
@@ -610,17 +582,19 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Предварительный просмотр аватара
+
 avatarInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function (e) {
             avatarPreview.src = e.target.result;
+            userIcon.querySelector('img').src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
 });
+
 
 
 // Загрузка данных пользователя с сервера
@@ -675,14 +649,19 @@ saveButton.addEventListener('click', async (event) => {
             body: formData,
         });
 
+        const result = await response.json();
         if (response.ok) {
-            const result = await response.json();
-            alert('Профиль успешно обновлен!');
-            if (result.avatar) {
-                avatarPreview.src = result.avatar;
+            alert(result.message || 'Профиль успешно обновлен!');
+            localStorage.setItem('username', newUsername);
+            if (avatar) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    userIcon.querySelector('img').src = e.target.result;
+                };
+                reader.readAsDataURL(avatar);
             }
         } else {
-            alert('Ошибка обновления профиля.');
+            alert(result.message || 'Ошибка обновления профиля.');
         }
     } catch (error) {
         console.error('Ошибка сохранения профиля:', error);
@@ -690,11 +669,10 @@ saveButton.addEventListener('click', async (event) => {
     }
 });
 
-// При загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
     const userId = localStorage.getItem('user_id');
     if (userId) {
-        await loadUserProfile(); // Загружаем данные профиля при загрузке страницы
+        await loadUserProfile();
     }
 });
 
