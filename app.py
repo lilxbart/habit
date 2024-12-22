@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
@@ -134,22 +134,21 @@ def main_page():
 def create_habit():
     try:
         data = request.get_json()
-        print("Полученные данные:", data)  # Отладочный вывод данных
+        print("Полученные данные:", data)
 
-        user_id = data.get('user_id')
+        user_id = data.get('user_id')  # Ensure this is passed from the frontend
         name = data.get('name')
 
-        if not all([user_id, name]):  # Проверяем наличие обязательных данных
+        if not all([user_id, name]):
             print("Ошибка: отсутствуют обязательные поля user_id или name")
             return jsonify({"message": "User ID and name are required"}), 400
 
-        # Прочие данные
         description = data.get('description', None)
-        recurrence = ','.join(data.get('recurrence', []))
+        recurrence = data.get('recurrence', None)
         reminder_text = data.get('reminder_text', None)
         reminder_time = data.get('reminder_time', None)
 
-        # Создаем новую привычку
+        # Create a new habit
         new_habit = Habit(
             user_id=user_id,
             name=name,
@@ -169,6 +168,7 @@ def create_habit():
     except Exception as e:
         print(f"Ошибка при создании привычки: {e}")
         return jsonify({"message": "Error while creating habit"}), 500
+
 
 
 
@@ -267,6 +267,50 @@ def get_user_data():
 
 
 
+@app.route('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory('assets', filename)
+
+
+
+
+
+
+
+
+
+
+
+@app.route('/api/habits', methods=['POST'])
+def add_habit():
+    data = request.json
+    user_id = data.get('user_id')
+    name = data.get('name')
+    description = data.get('description')
+    recurrence = data.get('recurrence')
+    reminder_text = data.get('reminder_text')
+    reminder_time = data.get('reminder_time')
+    start_date = data.get('startDate')
+
+    if not user_id or not name:
+        return jsonify({'message': 'user_id и название привычки обязательны'}), 400
+
+    try:
+        new_habit = Habit(
+            user_id=user_id,
+            name=name,
+            description=description,
+            recurrence=recurrence,
+            reminder_text=reminder_text,
+            reminder_time=reminder_time,
+            date_created=datetime.utcnow(),
+        )
+        db.session.add(new_habit)
+        db.session.commit()
+        return jsonify({'message': 'Привычка успешно добавлена', 'habit_id': new_habit.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Ошибка при добавлении привычки', 'error': str(e)}), 500
 
 
 

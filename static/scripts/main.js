@@ -13,7 +13,6 @@ let currentDate = new Date();
 let currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 let selectedDate = currentDate.toISOString().split('T')[0];
 
-
 function updateCurrentMonth() {
     const currentMonthElement = document.getElementById('current-month');
     const monthName = monthNames[currentMonth.getMonth()];
@@ -115,9 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-
-
 //текущей даты в заголовке
 function setCurrentDate() {
     const currentDateElement = document.getElementById('current-date');
@@ -131,9 +127,6 @@ function setCurrentDate() {
 
 setCurrentDate();
 updateCalendar();
-
-
-
 
 
 
@@ -269,8 +262,6 @@ function addHabitWithRecurrence(habit) {
 
 //форма новой привычки
 submitHabitButton.addEventListener('click', async () => {
-    console.log('Клик по кнопке "Добавить"!');
-
     const habitName = document.getElementById('habit-name').value.trim();
     const habitDescription = document.getElementById('habit-description').value.trim();
     const reminder = document.getElementById('habit-reminder').checked;
@@ -278,29 +269,25 @@ submitHabitButton.addEventListener('click', async () => {
     const startDate = selectedDate;
 
     if (!habitName) {
-        alert('Введите название привычки!');
-        console.log('Ошибка: Название не введено');
+        console.log('Ошибка: Название привычки не введено');
         return;
     }
 
-    const userId = localStorage.getItem('user_id') || 1; // Используйте ID пользователя из localStorage
+    const userId = localStorage.getItem('user_id');
+    if (!userId) {
+        console.log('Ошибка: Пользователь не авторизован');
+        return;
+    }
+
     const newHabit = {
-        user_id: localStorage.getItem('user_id'),
+        user_id: userId,
         name: habitName,
         description: habitDescription,
-        recurrence: selectedDays.join(','),  // Преобразуем массив в строку
+        recurrence: selectedDays.join(','),
         reminder_text: reminder ? `Напоминание: ${time}` : null,
         reminder_time: reminder ? time : null,
         startDate: selectedDate,
     };
-
-    console.log("Отправляемая привычка:", newHabit);
-
-    const response = await fetch('/api/habits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newHabit),
-    });
 
     try {
         const response = await fetch('/api/habits', {
@@ -312,18 +299,15 @@ submitHabitButton.addEventListener('click', async () => {
         });
 
         if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
+            const errorData = await response.json();
+            console.error('Ошибка при добавлении привычки:', errorData.message);
+            return;
         }
 
         const result = await response.json();
         console.log('Привычка успешно добавлена:', result);
 
-        // Добавление привычки в локальный список
-        addHabitWithRecurrence(newHabit);
-        displayHabitsForSelectedDate();
-
-        // Закрываем модальное окно
-        modal.style.display = 'none';
+        // Сброс значений формы
         document.getElementById('habit-name').value = '';
         document.getElementById('habit-description').value = '';
         document.getElementById('habit-reminder').checked = false;
@@ -331,13 +315,16 @@ submitHabitButton.addEventListener('click', async () => {
         selectedDays = [];
         recurrenceButtons.forEach(button => button.classList.remove('selected'));
 
-        console.log('Привычка добавлена и окно закрыто');
+        // Закрытие модального окна
+        modal.style.display = 'none';
+
+        // Обновление отображения привычек
+        addHabitWithRecurrence(newHabit);
+        displayHabitsForSelectedDate();
     } catch (error) {
-        console.error('Ошибка при отправке привычки:', error);
-        alert('Не удалось добавить привычку. Проверьте настройки сервера.');
+        console.error('Ошибка при добавлении привычки:', error);
     }
 });
-
 
 
 
@@ -362,17 +349,15 @@ document.addEventListener('DOMContentLoaded', function () {
 // Функция для получения привычек с сервера
 async function fetchHabitsFromServer() {
     try {
-        const response = await fetch('http://localhost:3000/habits'); // Укажи свой сервер
+        const response = await fetch('http://localhost:3000/habits');
         if (response.ok) {
-            const habits = await response.json(); // Получаем привычки с сервера
+            const habits = await response.json();
             console.log('Привычки с сервера:', habits);
 
-            // Распределяем привычки по дням
             habits.forEach((habit) => {
-                addHabitWithRecurrence(habit); // Используем обновленную функцию
+                addHabitWithRecurrence(habit);
             });
 
-            // Обновляем отображение для выбранной даты
             displayHabitsForSelectedDate();
         } else {
             console.error('Ошибка при получении данных с сервера:', response.status);
@@ -384,47 +369,41 @@ async function fetchHabitsFromServer() {
 
 
 
-
-
-
-
-
-
 // Для работы с достижениями
 const achievements = [
     { 
         name: "Первые шаги", 
         achieved: false,
         description: "Сделай первый шаг к своим целям, начни отслеживать хотя бы одну привычку.",
-        img: "/1111.png"
+        img: "/assets/1111.png"
 
     },
     { 
         name: "Мастер планирования", 
         achieved: false,
         description: "Заведи привычки на месяц, заполнив свой календарь целей и задач.",
-        img: "/1111.png"
+        img: "/assets/1111.png"
 
     },
     { 
         name: "Пять дней подряд", 
         achieved: true,
         description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "/1111.png"
+        img: "/assets/1111.png"
 
     },
     { 
         name: "Пять дней подряд", 
         achieved: true,
         description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
+        img: "/assets/1111.png"
 
     },
     { 
         name: "Пять дней подряд", 
         achieved: true,
         description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "file:///C:/Users/natalia/Desktop/пп/images/1111.png"
+        img: "/assets/1111.png"
 
     }
 ];
