@@ -108,7 +108,7 @@ def register():
 # Маршрут для входа
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.json
     username = data.get('username')
     password = data.get('password')
 
@@ -117,10 +117,10 @@ def login():
         return jsonify({
             "success": True,
             "message": "Login successful",
-            "user_id": user.id,
-            "username": user.username
+            "user_id": user.id
         }), 200
     return jsonify({"success": False, "message": "Invalid username or password"}), 401
+
 
 
 # Маршрут для загрузки главной страницы
@@ -284,33 +284,27 @@ def assets(filename):
 @app.route('/api/habits', methods=['POST'])
 def add_habit():
     data = request.json
-    user_id = data.get('user_id')
-    name = data.get('name')
-    description = data.get('description')
-    recurrence = data.get('recurrence')
-    reminder_text = data.get('reminder_text')
-    reminder_time = data.get('reminder_time')
-    start_date = data.get('startDate')
+    user_id = data.get('user_id')  # Получаем user_id
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
 
-    if not user_id or not name:
-        return jsonify({'message': 'user_id и название привычки обязательны'}), 400
+    new_habit = Habit(
+        user_id=user_id,
+        name=data.get('name'),
+        description=data.get('description'),
+        recurrence=data.get('recurrence'),
+        reminder_text=data.get('reminder_text'),
+        reminder_time=data.get('reminder_time'),
+        date_created=datetime.now(),
+        completed=False
+    )
 
     try:
-        new_habit = Habit(
-            user_id=user_id,
-            name=name,
-            description=description,
-            recurrence=recurrence,
-            reminder_text=reminder_text,
-            reminder_time=reminder_time,
-            date_created=datetime.utcnow(),
-        )
         db.session.add(new_habit)
         db.session.commit()
-        return jsonify({'message': 'Привычка успешно добавлена', 'habit_id': new_habit.id}), 201
+        return jsonify({'message': 'Habit added successfully'}), 201
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': 'Ошибка при добавлении привычки', 'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 

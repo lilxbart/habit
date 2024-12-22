@@ -269,24 +269,17 @@ submitHabitButton.addEventListener('click', async () => {
     const startDate = selectedDate;
 
     if (!habitName) {
-        console.log('Ошибка: Название привычки не введено');
-        return;
-    }
-
-    const userId = localStorage.getItem('user_id');
-    if (!userId) {
-        console.log('Ошибка: Пользователь не авторизован');
+        alert('Введите название привычки!');
         return;
     }
 
     const newHabit = {
-        user_id: userId,
+        user_id: localStorage.getItem('user_id'),
         name: habitName,
         description: habitDescription,
-        recurrence: selectedDays.join(','),
         reminder_text: reminder ? `Напоминание: ${time}` : null,
-        reminder_time: reminder ? time : null,
-        startDate: selectedDate,
+        recurrence: selectedDays.join(', ') || 'Нет',
+        startDate: startDate
     };
 
     try {
@@ -299,32 +292,21 @@ submitHabitButton.addEventListener('click', async () => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Ошибка при добавлении привычки:', errorData.message);
-            return;
+            throw new Error(`Ошибка HTTP: ${response.status}`);
         }
 
         const result = await response.json();
         console.log('Привычка успешно добавлена:', result);
 
-        // Сброс значений формы
-        document.getElementById('habit-name').value = '';
-        document.getElementById('habit-description').value = '';
-        document.getElementById('habit-reminder').checked = false;
-        document.getElementById('habit-time').value = '10:00';
-        selectedDays = [];
-        recurrenceButtons.forEach(button => button.classList.remove('selected'));
-
-        // Закрытие модального окна
+        // Закрываем модальное окно
         modal.style.display = 'none';
-
-        // Обновление отображения привычек
-        addHabitWithRecurrence(newHabit);
-        displayHabitsForSelectedDate();
     } catch (error) {
-        console.error('Ошибка при добавлении привычки:', error);
+        console.error('Ошибка при отправке привычки:', error);
+        alert('Не удалось добавить привычку. Проверьте настройки сервера.');
     }
 });
+
+
 
 
 
