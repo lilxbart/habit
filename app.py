@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
@@ -108,7 +108,7 @@ def register():
 # Маршрут для входа
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.json
     username = data.get('username')
     password = data.get('password')
 
@@ -117,10 +117,10 @@ def login():
         return jsonify({
             "success": True,
             "message": "Login successful",
-            "user_id": user.id,
-            "username": user.username
+            "user_id": user.id
         }), 200
     return jsonify({"success": False, "message": "Invalid username or password"}), 401
+
 
 
 # Маршрут для загрузки главной страницы
@@ -133,22 +133,21 @@ def main_page():
 def create_habit():
     try:
         data = request.get_json()
-        print("Полученные данные:", data)  # Отладочный вывод данных
+        print("Полученные данные:", data)
 
-        user_id = data.get('user_id')
+        user_id = data.get('user_id')  # Ensure this is passed from the frontend
         name = data.get('name')
 
-        if not all([user_id, name]):  # Проверяем наличие обязательных данных
+        if not all([user_id, name]):
             print("Ошибка: отсутствуют обязательные поля user_id или name")
             return jsonify({"message": "User ID and name are required"}), 400
 
-        # Прочие данные
         description = data.get('description', None)
-        recurrence = ','.join(data.get('recurrence', []))
+        recurrence = data.get('recurrence', None)
         reminder_text = data.get('reminder_text', None)
         reminder_time = data.get('reminder_time', None)
 
-        # Создаем новую привычку
+        # Create a new habit
         new_habit = Habit(
             user_id=user_id,
             name=name,
@@ -168,6 +167,9 @@ def create_habit():
     except Exception as e:
         print(f"Ошибка при создании привычки: {e}")
         return jsonify({"message": "Error while creating habit"}), 500
+
+
+
 
 
 habits = []
@@ -252,6 +254,69 @@ def get_user_data():
             "avatar": user.avatar or "/static/avatars/default.png"
         }), 200
     return jsonify({"message": "User not found"}), 404
+
+
+
+
+
+
+@app.route('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory('assets', filename)
+
+
+@app.route('/api/habits', methods=['POST'])
+def add_habit():
+    data = request.json
+    user_id = data.get('user_id')  # Получаем user_id
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
+
+    new_habit = Habit(
+        user_id=user_id,
+        name=data.get('name'),
+        description=data.get('description'),
+        recurrence=data.get('recurrence'),
+        reminder_text=data.get('reminder_text'),
+        reminder_time=data.get('reminder_time'),
+        date_created=datetime.now(),
+        completed=False
+    )
+
+    try:
+        db.session.add(new_habit)
+        db.session.commit()
+        return jsonify({'message': 'Habit added successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/habits/<int:user_id>', methods=['GET'])
+def get_habits(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+        habits = Habit.query.filter_by(user_id=user_id).all()
+        habits_list = [{
+            "id": habit.id,
+            "name": habit.name,
+            "description": habit.description,
+            "recurrence": habit.recurrence,
+            "reminder_text": habit.reminder_text,
+            "reminder_time": habit.reminder_time.strftime('%H:%M') if habit.reminder_time else None,
+            "date_created": habit.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            "completed": habit.completed
+        } for habit in habits]
+
+        return jsonify({"success": True, "habits": habits_list}), 200
+    except Exception as e:
+        print("Error fetching habits:", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+
+
 
 
 if __name__ == '__main__':

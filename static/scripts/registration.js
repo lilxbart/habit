@@ -110,24 +110,22 @@ async function loginUser(username, password) {
 signinForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const username = document.getElementById('signin-username').value.trim();
-    const password = document.getElementById('signin-password').value.trim();
+    const username = document.getElementById('signin-username').value;
+    const password = document.getElementById('signin-password').value;
 
     if (username && password) {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
+        const response = await loginUser(username, password);
 
-        const result = await response.json();
-        if (response.ok) {
+        if (response.success) {
+            // Сохраняем user_id в localStorage
+            localStorage.setItem('user_id', response.user_id); // Здесь сохраняется user_id
             localStorage.setItem('username', username);
+
             window.location.href = '/main';
         } else {
-            alert(result.message || 'Ошибка входа.');
+            alert('Ошибка входа: ' + response.message);
         }
     } else {
-        alert('Заполните все поля.');
+        alert('Пожалуйста, заполните все поля.');
     }
 });
