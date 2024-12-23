@@ -272,15 +272,6 @@ def assets(filename):
     return send_from_directory('assets', filename)
 
 
-
-
-
-
-
-
-
-
-
 @app.route('/api/habits', methods=['POST'])
 def add_habit():
     data = request.json
@@ -306,6 +297,30 @@ def add_habit():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/habits/<int:user_id>', methods=['GET'])
+def get_habits(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+        habits = Habit.query.filter_by(user_id=user_id).all()
+        habits_list = [{
+            "id": habit.id,
+            "name": habit.name,
+            "description": habit.description,
+            "recurrence": habit.recurrence,
+            "reminder_text": habit.reminder_text,
+            "reminder_time": habit.reminder_time.strftime('%H:%M') if habit.reminder_time else None,
+            "date_created": habit.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            "completed": habit.completed
+        } for habit in habits]
+
+        return jsonify({"success": True, "habits": habits_list}), 200
+    except Exception as e:
+        print("Error fetching habits:", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 
 
