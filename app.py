@@ -317,10 +317,13 @@ def get_habits(user_id):
             "completed": habit.completed
         } for habit in habits]
 
+        print(f"Habits for user {user_id}: {habits_list}")  # Лог для отладки
+
         return jsonify({"success": True, "habits": habits_list}), 200
     except Exception as e:
         print("Error fetching habits:", e)
         return jsonify({"success": False, "message": "Server error"}), 500
+
 
 
 
