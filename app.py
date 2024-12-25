@@ -10,11 +10,10 @@ import os
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -23,10 +22,9 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    avatar = db.Column(LargeBinary, nullable=True)
+    avatar = db.Column(LargeBinary, nullable=True) 
 
     habits = db.relationship('Habit', back_populates='user', lazy=True)
-
 
 class Habit(db.Model):
     __tablename__ = 'habits'
@@ -44,6 +42,7 @@ class Habit(db.Model):
     user = db.relationship('User', back_populates='habits')
 
 
+
 UPLOAD_FOLDER = 'static/avatars'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -52,9 +51,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 
 # Главная страница для регистрации
@@ -105,6 +104,7 @@ def register():
         return jsonify({"message": "Ошибка сервера"}), 500
 
 
+
 # Маршрут для входа
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -127,6 +127,7 @@ def login():
 @app.route('/main')
 def main_page():
     return render_template('main.html')
+
 
 
 @app.route('/api/habits', methods=['POST'])
@@ -174,7 +175,6 @@ def create_habit():
 
 habits = []
 
-
 # Маршрут для создания новой привычки
 @app.route('/api/habits', methods=['GET', 'POST'])
 def handle_habits():
@@ -185,6 +185,7 @@ def handle_habits():
         return jsonify({"success": True, "message": "Habit created successfully"}), 201
     elif request.method == 'GET':
         return jsonify(habits)
+
 
 
 # Маршрут для удаления привычки
@@ -207,6 +208,7 @@ def complete_habit(habit_id):
         db.session.commit()
         return jsonify({"success": True, "message": "Habit marked as completed"})
     return jsonify({"success": False, "message": "Habit not found"}), 404
+
 
 
 # Маршрут для окна профиля
@@ -238,6 +240,11 @@ def update_profile():
         db.session.rollback()
         print(f"Ошибка при обновлении профиля: {e}")
         return jsonify({"message": f"Error updating profile: {str(e)}"}), 500
+
+
+
+
+
 
 
 @app.route('/api/user-data', methods=['GET'])
