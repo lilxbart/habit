@@ -12,7 +12,7 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 # Конфигурация базы данных
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1324@localhost/priv'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:89168117733@localhost/habit_tracker_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -36,16 +36,19 @@ class Habit(db.Model):
     __tablename__ = 'habits'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Внешний ключ
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    recurrence = db.Column(db.String(50), nullable=True)  # Новый столбец
+    recurrence = db.Column(db.String(50), nullable=True)
     reminder_text = db.Column(db.String(255), nullable=True)
     reminder_time = db.Column(db.Time, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
     completed = db.Column(db.Boolean, default=False)
+    streak_count = db.Column(db.Integer, default=0)
 
     user = db.relationship('User', back_populates='habits')
+    completions = db.relationship('HabitCompletion', back_populates='habit', cascade='all, delete-orphan')
+
 
 
 class Achievement(db.Model):
@@ -69,6 +72,16 @@ class UserAchievement(db.Model):
 
     user = db.relationship('User', back_populates='user_achievements')
     achievement = db.relationship('Achievement', back_populates='user_achievements')
+
+class HabitCompletion(db.Model):
+    __tablename__ = 'habit_completions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    habit_id = db.Column(db.Integer, db.ForeignKey('habits.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+
+    # Связь с моделью Habit
+    habit = db.relationship('Habit', back_populates='completions')
 
 
 # Конфигурация загрузки файлов
@@ -313,32 +326,51 @@ def get_habits(user_id):
 def delete_habit(habit_id):
     habit = Habit.query.get(habit_id)
     if habit:
-        user_id = habit.user_id  # Сохраняем user_id для проверки достижений после удаления
         db.session.delete(habit)
         db.session.commit()
-        print(f"Привычка {habit_id} удалена пользователем {user_id}")
-        # Здесь можно добавить проверку достижений после удаления привычки, если необходимо
         return jsonify({"success": True, "message": "Habit deleted successfully"}), 200
     return jsonify({"success": False, "message": "Habit not found"}), 404
+
 
 
 # Маршрут для переключения статуса привычки (выполнена/не выполнена)
 @app.route('/api/habits/<int:habit_id>/complete', methods=['PATCH'])
 def toggle_habit_complete(habit_id):
     habit = Habit.query.get(habit_id)
-    if habit:
-        habit.completed = not habit.completed  # Переключаем значение completed
-        db.session.commit()
+    if not habit:
+        return jsonify({"success": False, "message": "Habit not found"}), 404
 
-        # Проверяем достижения после выполнения привычки
-        check_achievements_on_habit_completion(habit.user_id)
+    # Получаем дату из запроса
+    selected_date = request.json.get('selected_date')
+    if not selected_date:
+        return jsonify({"success": False, "message": "Selected date is required"}), 400
 
-        return jsonify({
-            "success": True,
-            "message": "Habit status updated",
-            "completed": habit.completed
-        }), 200
-    return jsonify({"success": False, "message": "Habit not found"}), 404
+    selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+
+    # Проверяем выполнение привычки на указанную дату
+    completion = HabitCompletion.query.filter_by(habit_id=habit_id, date=selected_date).first()
+
+    if completion:
+        # Если привычка была выполнена, снимаем выполнение
+        db.session.delete(completion)
+        if habit.streak_count > 0:
+            habit.streak_count -= 1
+    else:
+        # Помечаем привычку как выполненную
+        new_completion = HabitCompletion(habit_id=habit_id, date=selected_date)
+        db.session.add(new_completion)
+
+        # Проверяем выполнение на предыдущий день
+        previous_date = selected_date - timedelta(days=1)
+        previous_completion = HabitCompletion.query.filter_by(habit_id=habit_id, date=previous_date).first()
+
+        if previous_completion:
+            habit.streak_count += 1
+        else:
+            habit.streak_count = 1
+
+    db.session.commit()
+    return jsonify({"success": True, "completed": not completion, "streak_count": habit.streak_count})
 
 
 # Маршрут для обновления профиля
@@ -432,6 +464,50 @@ def get_user_achievements(user_id):
                                    ua.achievement_id == ach.id), None)
         })
     return jsonify({"achievements": achievements_list}), 200
+
+
+
+@app.route('/api/progress', methods=['GET'])
+def get_progress():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "User ID is required"}), 400
+
+    habits = Habit.query.filter_by(user_id=user_id).all()
+    if not habits:
+        return jsonify({"daily_progress": 0, "monthly_progress": 0})
+
+    # Ежедневный прогресс
+    today = datetime.utcnow().date()
+    completions_today = HabitCompletion.query.filter(
+        HabitCompletion.date == today,
+        HabitCompletion.habit_id.in_([habit.id for habit in habits])
+    ).count()
+    daily_progress = (completions_today / len(habits)) * 100 if habits else 0
+
+    # Ежемесячный прогресс
+    current_month = today.month
+    current_year = today.year
+    days_in_month = (datetime(current_year, current_month + 1, 1) - timedelta(days=1)).day
+
+    completed_days = 0
+    for day in range(1, days_in_month + 1):
+        date = datetime(current_year, current_month, day).date()
+        completions = HabitCompletion.query.filter(
+            HabitCompletion.date == date,
+            HabitCompletion.habit_id.in_([habit.id for habit in habits])
+        ).all()
+
+        if completions and len(completions) == len(habits):
+            completed_days += 1
+
+    monthly_progress = (completed_days / days_in_month) * 100
+
+    return jsonify({
+        "daily_progress": daily_progress,
+        "monthly_progress": monthly_progress
+    })
+
 
 
 # Маршрут для получения статики

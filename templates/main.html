@@ -50,12 +50,20 @@
 
         <div class="right-container">
             <div class="progress-container">
-                <h2>ПРОГРЕСС</h2>
+                <h2>ЕЖЕДНЕВНЫЙ ПРОГРЕСС</h2>
                 <div class="progress-bar">
                     <div class="progress-fill"></div>
                 </div>
                 <p id="progress-text">0% Выполнено</p>
             </div>
+            <div class="progress-container">
+                <h2>МЕСЯЧНЫЙ ПРОГРЕСС</h2>
+                <div class="progress-bar">
+                    <div id="monthly-progress-fill" class="progress-fill"></div>
+                </div>
+                <p id="monthly-progress-text">0% Выполнено</p>
+            </div>
+            
             <div class="rewards-container">
                 <h2>ВАШИ ДОСТИЖЕНИЯ</h2>
                 
@@ -149,6 +157,15 @@
     </div>
 </div>
 
+
+
+<div id="delete-confirm-modal" class="modal">
+    <div class="modal-content">
+        <p id="delete-confirm-message"></p>
+        <button id="confirm-delete">Да</button>
+        <button id="cancel-delete">Нет</button>
+    </div>
+</div>
 
 
 

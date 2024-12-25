@@ -1,6 +1,3 @@
-// main.js
-
-// Получение элементов из DOM
 const modal = document.getElementById('habit-modal');
 const addHabitButton = document.getElementById('add-habit-button');
 const closeHabitModalButton = modal.querySelector('.close-button');
@@ -84,7 +81,6 @@ function updateCalendar() {
     const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
 
-
     for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
         const dayElement = createDayElement(date);
@@ -95,7 +91,10 @@ function updateCalendar() {
             dayElement.classList.add('selected');
         }
     }
+
+    displayHabitsForSelectedDate();
 }
+
 
 function createDayElement(date) {
     const dayElement = document.createElement('div');
@@ -145,6 +144,8 @@ function setCurrentDate() {
 
     currentDateElement.textContent = formattedDate;
 }
+
+
 
 // ПРИВЫЧКИ - создание
 addHabitButton.addEventListener('click', () => {
@@ -250,8 +251,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// ПРИВЫЧКИ - отображение
 
+
+
+
+
+// ПРИВЫЧКИ - отображение
 // Функция для получения привычек с сервера
 async function fetchHabits(userId) {
     try {
@@ -271,22 +276,21 @@ async function displayHabitsForSelectedDate() {
     if (!userId) return console.error('Не найден user_id');
 
     const habits = await fetchHabits(userId);
-
     const habitsContainer = document.getElementById('habits-container');
     habitsContainer.innerHTML = ''; // Очистка контейнера
 
-    const today = getLocalDate();
+    const selectedYear = currentMonth.getFullYear();
+    const selectedMonth = currentMonth.getMonth();
 
     habits.forEach(habit => {
-        const habitDates = getDatesFromRecurrence(habit.recurrence || '');
-        const habitStartDate = habit.date_created.split(' ')[0]; // Дата создания из API
+        const habitDates = getDatesFromRecurrence(habit.recurrence || '', selectedYear, selectedMonth);
+        const habitStartDate = habit.date_created.split(' ')[0];
 
-        // Проверяем, должна ли привычка отображаться
         if (
-            (habitDates.includes(selectedDate) && selectedDate >= habitStartDate) ||
-            (habit.recurrence === 'Каждый день' && selectedDate >= habitStartDate)
+            habitDates.includes(selectedDate) &&
+            selectedDate >= habitStartDate
         ) {
-            const habitElement = createHabitElement(habit, selectedDate === today);
+            const habitElement = createHabitElement(habit, selectedDate === getLocalDate());
             habitsContainer.appendChild(habitElement);
         }
     });
@@ -302,6 +306,7 @@ function createHabitElement(habit, isToday) {
         <div class="habit-info">
             <h3 class="habit-name">${habit.name}</h3>
             <p class="habit-description">${habit.description || ''}</p>
+            <p class="habit-streak">Серия: ${habit.streak_count || 0} дней</p>
         </div>
         <div class="habit-actions">
             ${isToday ? `<button class="complete-habit" data-id="${habit.id}">✅</button>` : ''}
@@ -319,20 +324,34 @@ function createHabitElement(habit, isToday) {
 
 // Переключение состояния привычки (выполнено/не выполнено)
 async function toggleHabitComplete(habitId, habitElement) {
+    const selectedDate = getLocalDate(); // Получаем текущую дату
+
     try {
-        const response = await fetch(`/api/habits/${habitId}/complete`, { method: 'PATCH' });
+        const response = await fetch(`/api/habits/${habitId}/complete`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selected_date: selectedDate })
+        });
+
         if (response.ok) {
             const data = await response.json();
-            habitElement.classList.toggle('completed', data.completed); // Применяем статус с сервера
-            updateProgress();
+
+            // Обновляем визуальное состояние привычки
+            habitElement.classList.toggle('completed', data.completed);
+
+            // Обновляем счетчик серии
+            const streakElement = habitElement.querySelector('.habit-streak');
+            if (streakElement) {
+                streakElement.textContent = `Серия: ${data.streak_count} дней`;
+            }
         } else {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Ошибка обновления привычки');
+            console.error('Ошибка при обновлении привычки:', response.statusText);
         }
     } catch (error) {
-        console.error('Ошибка при переключении состояния привычки:', error);
+        console.error('Ошибка при выполнении запроса:', error);
     }
 }
+
 
 // Удаление привычки с подтверждением
 function confirmDeleteHabit(habitId) {
@@ -358,6 +377,28 @@ function confirmDeleteHabit(habitId) {
     });
 }
 
+
+// Удаление привычки с подтверждением
+function confirmDeleteHabit(habitId) {
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const deleteMessage = document.getElementById('delete-confirm-message');
+    const confirmButton = document.getElementById('confirm-delete');
+    const cancelButton = document.getElementById('cancel-delete');
+
+    deleteMessage.textContent = "Вы уверены, что хотите удалить привычку навсегда?";
+    deleteModal.style.display = 'flex';
+
+    // Добавляем обработчики кнопок
+    confirmButton.onclick = async () => {
+        await deleteHabit(habitId);
+        deleteModal.style.display = 'none';
+    };
+
+    cancelButton.onclick = () => {
+        deleteModal.style.display = 'none';
+    };
+}
+
 // Удаление привычки
 async function deleteHabit(habitId) {
     try {
@@ -373,26 +414,30 @@ async function deleteHabit(habitId) {
     }
 }
 
+
+
 // Преобразование повторяющихся дней недели в даты
-function getDatesFromRecurrence(recurrence) {
+function getDatesFromRecurrence(recurrence, year, month) {
     const daysMap = { "ПН": 1, "ВТ": 2, "СР": 3, "ЧТ": 4, "ПТ": 5, "СБ": 6, "ВС": 0 };
     const days = recurrence.split(', ').map(day => daysMap[day]);
 
     const dates = [];
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    for (let day = 1; day <= 31; day++) {
-        const date = new Date(currentYear, currentMonth, day);
-        if (date.getMonth() !== currentMonth) break;
-
-        if (days.includes(date.getDay())) dates.push(getLocalDate(date));
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        if (days.includes(date.getDay())) {
+            dates.push(getLocalDate(date));
+        }
     }
     return dates;
 }
 
-// ДОСТИЖЕНИЯ
 
+
+
+
+// ДОСТИЖЕНИЯ
 const achievements = [
     {
         name: "Первые шаги",
@@ -484,8 +529,10 @@ window.onload = function() {
     displayAchievements();
 };
 
-// ПРОГРЕСС
 
+
+
+// ПРОГРЕСС
 async function getHabitsData() {
     try {
         const userId = localStorage.getItem('user_id');
@@ -501,25 +548,44 @@ async function getHabitsData() {
 }
 
 async function updateProgress() {
-    const habits = await getHabitsData();
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return;
 
-    const allHabits = habits.length;
-    const completedHabits = habits.filter(habit => habit.completed).length;
+    try {
+        const response = await fetch(`/api/progress?user_id=${userId}`);
+        if (!response.ok) throw new Error('Ошибка при загрузке прогресса');
+        const data = await response.json();
 
-    const progressPercent = allHabits > 0 ? (completedHabits / allHabits) * 100 : 0;
+        // Ежедневный прогресс
+        const dailyProgressFill = document.querySelector('.daily-progress-fill');
+        const dailyProgressText = document.getElementById('daily-progress-text');
+        dailyProgressFill.style.width = `${data.daily_progress}%`;
+        dailyProgressText.textContent = `${Math.round(data.daily_progress)}% Выполнено за день`;
 
-    const progressFill = document.querySelector('.progress-fill');
-    const progressText = document.getElementById('progress-text');
-
-    progressFill.style.width = `${progressPercent}%`;
-    progressText.textContent = `${Math.round(progressPercent)}% Выполнено`;
+        // Ежемесячный прогресс
+        const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
+        const monthlyProgressText = document.getElementById('monthly-progress-text');
+        monthlyProgressFill.style.width = `${data.monthly_progress}%`;
+        monthlyProgressText.textContent = `${Math.round(data.monthly_progress)}% Выполнено за месяц`;
+    } catch (error) {
+        console.error('Ошибка при обновлении прогресса:', error);
+    }
 }
 
-document.addEventListener('DOMContentLoaded', updateProgress);
-setInterval(updateProgress, 30000);
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateProgress();
+
+    // Обновляем прогресс каждые 30 секунд
+    setInterval(updateProgress, 30000);
+});
+
+
+
+
+
 
 // Профиль пользователя
-
 const userProfileModal = document.getElementById('user-profile-modal');
 const avatarInput = document.getElementById('avatar');
 const avatarPreview = document.getElementById('avatar-img');
