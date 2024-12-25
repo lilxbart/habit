@@ -44,14 +44,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // Обновление привычек при выборе даты
 function setupDateSelection() {
     document.querySelectorAll('.day').forEach(day => {
-        day.addEventListener('click', () => {
+        day.addEventListener('click', (event) => {
+            event.preventDefault(); // Предотвращаем стандартное поведение
             selectedDate = day.getAttribute('data-date');
+            
+            // Убираем выделение со всех дней
             document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+            
+            // Выделяем выбранный день
             day.classList.add('selected');
             displayHabitsForSelectedDate();
         });
     });
 }
+
 
 
 
@@ -147,172 +153,115 @@ updateCalendar();
 
 
 
-//ПРИВЫЧКИ добавление
-// Функция для получения привычек с сервера
-async function fetchHabits(userId) {
-    try {
-        const response = await fetch(`/api/habits/${userId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка при загрузке привычек');
-        }
-        const data = await response.json();
-        return data.habits || [];
-    } catch (error) {
-        console.error('Ошибка:', error);
-        return [];
+
+
+
+
+
+
+
+
+
+
+//ПРИВЫЧКИ создание
+addHabitButton.addEventListener('click', () => {
+    if (selectedDate) {
+        modal.style.display = 'flex';
+    } else {
+        alert("Пожалуйста, выберите дату, прежде чем добавлять привычку.");
     }
-}
+});
 
-// Функция для преобразования дней недели в даты текущего месяца
-function getDatesFromRecurrence(recurrence) {
-    const daysMap = { "ПН": 1, "ВТ": 2, "СР": 3, "ЧТ": 4, "ПТ": 5, "СБ": 6, "ВС": 0 };
-    const days = recurrence.split(', ').map(day => daysMap[day]);
+closeButton.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
 
-    const dates = [];
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    for (let day = 1; day <= 31; day++) {
-        const date = new Date(currentYear, currentMonth, day);
-        if (date.getMonth() !== currentMonth) break;
-
-        if (days.includes(date.getDay())) {
-            dates.push(date.toISOString().split('T')[0]);
-        }
+window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+        modal.style.display = 'none';
     }
-    return dates;
-}
+});
 
-// Функция для отображения привычек на выбранную дату
-async function displayHabitsForSelectedDate() {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) {
-        console.error('Не найден user_id');
-        return;
-    }
+// Обработчики для выбора дней в модальном окне
+const recurrenceButtons = document.querySelectorAll('.habit-recurrence button');
+let selectedDays = [];
 
-    const habits = await fetchHabits(userId);
+recurrenceButtons.forEach(button => {
+    button.addEventListener('click', (event) => {
+        event.preventDefault(); // Предотвращаем стандартное поведение
+        event.stopPropagation(); // Останавливаем всплытие событий
 
-    const habitsContainer = document.getElementById('habits-container');
-    habitsContainer.innerHTML = ''; // Очищаем контейнер
+        const day = button.textContent;
 
-    const today = new Date().toISOString().split('T')[0];
-
-    habits.forEach(habit => {
-        const habitDates = getDatesFromRecurrence(habit.recurrence || '');
-        const habitStartDate = new Date(habit.date_created).toISOString().split('T')[0];
-
-        if (
-            (habitDates.includes(selectedDate) && selectedDate >= habitStartDate) ||
-            (habit.recurrence === 'Каждый день' && selectedDate >= habitStartDate)
-        ) {
-            const habitElement = createHabitElement(habit, selectedDate === today);
-            habitsContainer.appendChild(habitElement);
+        // Добавляем или удаляем день из выбранных
+        if (selectedDays.includes(day)) {
+            selectedDays = selectedDays.filter(selectedDay => selectedDay !== day);
+            button.classList.remove('selected');
+        } else {
+            selectedDays.push(day);
+            button.classList.add('selected');
         }
     });
-}
-
-// Функция для создания элемента привычки
-function createHabitElement(habit, isToday) {
-    const habitDiv = document.createElement('div');
-    habitDiv.classList.add('habit');
-
-    habitDiv.innerHTML = `
-        <div class="habit-info">
-            <h3 class="habit-name">${habit.name}</h3>
-            <p class="habit-description">${habit.description || ''}</p>
-            <p class="habit-reminder">${habit.reminder_text || ''}</p>
-        </div>
-        <div class="habit-actions">
-            ${isToday ? `<button class="complete-habit" data-id="${habit.id}">✅</button>` : ''}
-            ${isToday ? `<button class="delete-habit" data-id="${habit.id}">❌</button>` : ''}
-        </div>
-    `;
-
-    if (isToday) {
-        const completeButton = habitDiv.querySelector('.complete-habit');
-        const deleteButton = habitDiv.querySelector('.delete-habit');
-
-        completeButton.addEventListener('click', () => markHabitComplete(habit.id));
-        deleteButton.addEventListener('click', () => confirmDeleteHabit(habit.id));
-    }
-
-    return habitDiv;
-}
-
-// Функция для подтверждения удаления привычки
-function confirmDeleteHabit(habitId) {
-    const modal = document.createElement('div');
-    modal.classList.add('modal');
-    modal.innerHTML = `
-        <div class="modal-content">
-            <p>Уверены ли вы, что хотите удалить эту привычку навсегда?</p>
-            <div class="modal-actions">
-                <button id="confirm-delete">Да</button>
-                <button id="cancel-delete">Нет</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const confirmButton = modal.querySelector('#confirm-delete');
-    const cancelButton = modal.querySelector('#cancel-delete');
-
-    confirmButton.addEventListener('click', () => {
-        deleteHabit(habitId);
-        document.body.removeChild(modal);
-    });
-
-    cancelButton.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-}
-
-// Функция для отметки привычки как выполненной
-async function markHabitComplete(habitId) {
-    try {
-        const response = await fetch(`/api/habits/${habitId}/complete`, { method: 'PATCH' });
-        if (response.ok) {
-            alert('Привычка выполнена!');
-            displayHabitsForSelectedDate();
-        }
-    } catch (error) {
-        console.error('Ошибка при отметке выполнения привычки:', error);
-    }
-}
-
-// Функция для удаления привычки
-async function deleteHabit(habitId) {
-    try {
-        const response = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('Привычка удалена!');
-            displayHabitsForSelectedDate();
-        }
-    } catch (error) {
-        console.error('Ошибка при удалении привычки:', error);
-    }
-}
-
-// Обновление привычек при выборе даты
-function setupDateSelection() {
-    document.querySelectorAll('.day').forEach(day => {
-        day.addEventListener('click', () => {
-            selectedDate = day.getAttribute('data-date');
-            displayHabitsForSelectedDate();
-        });
-    });
-}
-
-// Инициализация отображения привычек при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    setupDateSelection();
-    displayHabitsForSelectedDate();
 });
 
 
+//форма новой привычки
+submitHabitButton.addEventListener('click', async () => {
+    const habitName = document.getElementById('habit-name').value.trim();
+    const habitDescription = document.getElementById('habit-description').value.trim();
+    const reminder = document.getElementById('habit-reminder').checked;
+    const time = document.getElementById('habit-time').value;
+    const startDate = selectedDate;
+
+    if (!habitName) {
+        alert('Введите название привычки!');
+        return;
+    }
+
+    const newHabit = {
+        user_id: localStorage.getItem('user_id'),
+        name: habitName,
+        description: habitDescription,
+        reminder_text: reminder ? `Напоминание: ${time}` : null,
+        recurrence: selectedDays.join(', ') || 'Нет',
+        startDate: startDate
+    };
+
+    try {
+        const response = await fetch('/api/habits', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newHabit),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Привычка успешно добавлена:', result);
+
+        // Закрываем модальное окно
+        modal.style.display = 'none';
+    } catch (error) {
+        console.error('Ошибка при отправке привычки:', error);
+        alert('Не удалось добавить привычку. Проверьте настройки сервера.');
+    }
+});
 
 
+document.addEventListener('DOMContentLoaded', function () {
+    const userNicknameElement = document.getElementById('user-nickname');
+    const username = localStorage.getItem('username');
+
+    if (username) {
+        userNicknameElement.textContent = username;
+    } else {
+        console.error('Имя пользователя не найдено в localStorage.');
+    }
+});
 
 
 
@@ -323,13 +272,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 //ПРИВЫЧКИ отображение
+// Получение локальной даты в формате YYYY-MM-DD
+function getLocalDate(date = new Date()) {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Функция для получения привычек с сервера
 async function fetchHabits(userId) {
     try {
         const response = await fetch(`/api/habits/${userId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка при загрузке привычек');
-        }
+        if (!response.ok) throw new Error('Ошибка при загрузке привычек');
         const data = await response.json();
         return data.habits || [];
     } catch (error) {
@@ -338,7 +293,107 @@ async function fetchHabits(userId) {
     }
 }
 
-// Функция для преобразования дней недели в даты текущего месяца
+// Логика отображения привычек для выбранной даты
+async function displayHabitsForSelectedDate() {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return console.error('Не найден user_id');
+
+    const habits = await fetchHabits(userId);
+
+    const habitsContainer = document.getElementById('habits-container');
+    habitsContainer.innerHTML = ''; // Очистка контейнера
+
+    const today = getLocalDate();
+
+    habits.forEach(habit => {
+        const habitDates = getDatesFromRecurrence(habit.recurrence || '');
+        const habitStartDate = habit.date_created.split(' ')[0]; // Дата создания из API
+
+        // Проверяем, должна ли привычка отображаться
+        if (
+            (habitDates.includes(selectedDate) && selectedDate >= habitStartDate) ||
+            (habit.recurrence === 'Каждый день' && selectedDate >= habitStartDate)
+        ) {
+            const habitElement = createHabitElement(habit, selectedDate === today);
+            habitsContainer.appendChild(habitElement);
+        }
+    });
+}
+
+// Функция создания элемента привычки
+function createHabitElement(habit, isToday) {
+    const habitDiv = document.createElement('div');
+    habitDiv.classList.add('habit');
+    if (habit.completed) habitDiv.classList.add('completed');
+
+    habitDiv.innerHTML = `
+        <div class="habit-info">
+            <h3 class="habit-name">${habit.name}</h3>
+            <p class="habit-description">${habit.description || ''}</p>
+        </div>
+        <div class="habit-actions">
+            ${isToday ? `<button class="complete-habit" data-id="${habit.id}">✅</button>` : ''}
+            ${isToday ? `<button class="delete-habit" data-id="${habit.id}">❌</button>` : ''}
+        </div>
+    `;
+
+    if (isToday) {
+        habitDiv.querySelector('.complete-habit').addEventListener('click', () => toggleHabitComplete(habit.id, habitDiv));
+        habitDiv.querySelector('.delete-habit').addEventListener('click', () => confirmDeleteHabit(habit.id));
+    }
+
+    return habitDiv;
+}
+
+// Переключение состояния привычки (выполнено/не выполнено)
+async function toggleHabitComplete(habitId, habitElement) {
+    try {
+        const response = await fetch(`/api/habits/${habitId}/complete`, { method: 'PATCH' });
+        if (response.ok) {
+            const data = await response.json();
+            habitElement.classList.toggle('completed', data.completed); // Применяем статус с сервера
+        } else {
+            console.error('Ошибка обновления привычки');
+        }
+    } catch (error) {
+        console.error('Ошибка при переключении состояния привычки:', error);
+    }
+}
+
+// Удаление привычки с подтверждением
+function confirmDeleteHabit(habitId) {
+    const modal = document.createElement('div');
+    modal.classList.add('modal');
+    modal.innerHTML = `
+        <div class="modal-content">
+            <p>Вы уверены, что хотите удалить привычку навсегда?</p>
+            <button id="confirm-delete">Да</button>
+            <button id="cancel-delete">Нет</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('confirm-delete').addEventListener('click', async () => {
+        await deleteHabit(habitId);
+        document.body.removeChild(modal);
+    });
+
+    document.getElementById('cancel-delete').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+}
+
+// Удаление привычки
+async function deleteHabit(habitId) {
+    try {
+        const response = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' });
+        if (response.ok) displayHabitsForSelectedDate(); // Обновляем список привычек
+    } catch (error) {
+        console.error('Ошибка при удалении привычки:', error);
+    }
+}
+
+// Преобразование повторяющихся дней недели в даты
 function getDatesFromRecurrence(recurrence) {
     const daysMap = { "ПН": 1, "ВТ": 2, "СР": 3, "ЧТ": 4, "ПТ": 5, "СБ": 6, "ВС": 0 };
     const days = recurrence.split(', ').map(day => daysMap[day]);
@@ -351,163 +406,17 @@ function getDatesFromRecurrence(recurrence) {
         const date = new Date(currentYear, currentMonth, day);
         if (date.getMonth() !== currentMonth) break;
 
-        if (days.includes(date.getDay())) {
-            dates.push(date.toISOString().split('T')[0]);
-        }
+        if (days.includes(date.getDay())) dates.push(getLocalDate(date));
     }
     return dates;
 }
 
-// Функция для отображения привычек на выбранную дату
-async function displayHabitsForSelectedDate() {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) {
-        console.error('Не найден user_id');
-        return;
-    }
-
-    const habits = await fetchHabits(userId);
-
-    const habitsContainer = document.getElementById('habits-container');
-    habitsContainer.innerHTML = ''; // Очищаем контейнер
-
-    const today = getLocalDate(); // Получаем локальную дату
-
-    habits.forEach(habit => {
-        const habitDates = getDatesFromRecurrence(habit.recurrence || '');
-        const habitStartDate = new Date(habit.date_created).toISOString().split('T')[0];
-
-        if (
-            (habitDates.includes(selectedDate) && selectedDate >= habitStartDate) ||
-            (habit.recurrence === 'Каждый день' && selectedDate >= habitStartDate)
-        ) {
-            const habitElement = createHabitElement(habit, selectedDate === today);
-            habitsContainer.appendChild(habitElement);
-        }
-    });
-}
-
-// Функция для создания элемента привычки
-function createHabitElement(habit, isToday) {
-    const habitDiv = document.createElement('div');
-    habitDiv.classList.add('habit');
-    if (habit.completed) {
-        habitDiv.classList.add('completed'); // Если привычка выполнена, добавляем класс
-    }
-
-    habitDiv.innerHTML = `
-        <div class="habit-info">
-            <h3 class="habit-name">${habit.name}</h3>
-            <p class="habit-description">${habit.description || ''}</p>
-            <p class="habit-reminder">${habit.reminder_text || ''}</p>
-        </div>
-        <div class="habit-actions">
-            ${isToday ? `<button class="complete-habit" data-id="${habit.id}">✅</button>` : ''}
-            ${isToday ? `<button class="delete-habit" data-id="${habit.id}">❌</button>` : ''}
-        </div>
-    `;
-
-    if (isToday) {
-        const completeButton = habitDiv.querySelector('.complete-habit');
-        const deleteButton = habitDiv.querySelector('.delete-habit');
-
-        completeButton.addEventListener('click', () => toggleHabitComplete(habit.id, habitDiv)); // Переключаем состояние
-        deleteButton.addEventListener('click', () => confirmDeleteHabit(habit.id));
-    }
-
-    return habitDiv;
-}
-
-// Функция для подтверждения удаления привычки
-function confirmDeleteHabit(habitId) {
-    const modal = document.createElement('div');
-    modal.classList.add('modal');
-    modal.innerHTML = `
-        <div class="modal-content">
-            <p>Уверены ли вы, что хотите удалить эту привычку навсегда?</p>
-            <div class="modal-actions">
-                <button id="confirm-delete">Да</button>
-                <button id="cancel-delete">Нет</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const confirmButton = modal.querySelector('#confirm-delete');
-    const cancelButton = modal.querySelector('#cancel-delete');
-
-    confirmButton.addEventListener('click', () => {
-        deleteHabit(habitId);
-        document.body.removeChild(modal);
-    });
-
-    cancelButton.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-}
-
-// Функция для отметки привычки как выполненной/не выполненной
-async function toggleHabitComplete(habitId, habitElement) {
-    try {
-        const response = await fetch(`/api/habits/${habitId}/complete`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-                habitElement.classList.toggle('completed', data.completed); // Применяем статус с сервера
-            } else {
-                console.error('Ошибка обновления статуса привычки:', data.message);
-            }
-        } else {
-            console.error('Ошибка при выполнении запроса:', response.statusText);
-        }
-    } catch (error) {
-        console.error('Ошибка при выполнении запроса:', error);
-    }
-}
-
-
-// Функция для удаления привычки
-async function deleteHabit(habitId) {
-    try {
-        const response = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('Привычка удалена!');
-            displayHabitsForSelectedDate();
-        }
-    } catch (error) {
-        console.error('Ошибка при удалении привычки:', error);
-    }
-}
-
-// Обновление привычек при выборе даты
-function setupDateSelection() {
-    document.querySelectorAll('.day').forEach(day => {
-        day.addEventListener('click', () => {
-            selectedDate = day.getAttribute('data-date');
-            displayHabitsForSelectedDate();
-        });
-    });
-}
-
-// Инициализация отображения привычек при загрузке страницы
+// Инициализация отображения привычек
 document.addEventListener('DOMContentLoaded', () => {
-    const today = new Date();
-    selectedDate = today.toISOString().split('T')[0];
-
-    const activeDayElement = document.querySelector(`.day[data-date="${selectedDate}"]`);
-    if (activeDayElement) {
-        document.querySelectorAll('.day').forEach(day => day.classList.remove('selected'));
-        activeDayElement.classList.add('selected');
-        activeDayElement.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-    }
-
-    setupDateSelection();
+    selectedDate = getLocalDate();
     displayHabitsForSelectedDate();
 });
+
 
 
 
