@@ -391,6 +391,9 @@ async function displayHabitsForSelectedDate() {
 function createHabitElement(habit, isToday) {
     const habitDiv = document.createElement('div');
     habitDiv.classList.add('habit');
+    if (habit.completed) {
+        habitDiv.classList.add('completed'); // Если привычка выполнена, добавляем класс
+    }
 
     habitDiv.innerHTML = `
         <div class="habit-info">
@@ -408,7 +411,7 @@ function createHabitElement(habit, isToday) {
         const completeButton = habitDiv.querySelector('.complete-habit');
         const deleteButton = habitDiv.querySelector('.delete-habit');
 
-        completeButton.addEventListener('click', () => markHabitComplete(habit.id));
+        completeButton.addEventListener('click', () => toggleHabitComplete(habit.id, habitDiv)); // Переключаем состояние
         deleteButton.addEventListener('click', () => confirmDeleteHabit(habit.id));
     }
 
@@ -443,18 +446,29 @@ function confirmDeleteHabit(habitId) {
     });
 }
 
-// Функция для отметки привычки как выполненной
-async function markHabitComplete(habitId) {
+// Функция для отметки привычки как выполненной/не выполненной
+async function toggleHabitComplete(habitId, habitElement) {
     try {
-        const response = await fetch(`/api/habits/${habitId}/complete`, { method: 'PATCH' });
+        const response = await fetch(`/api/habits/${habitId}/complete`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
         if (response.ok) {
-            alert('Привычка выполнена!');
-            displayHabitsForSelectedDate();
+            const data = await response.json();
+            if (data.success) {
+                habitElement.classList.toggle('completed', data.completed); // Применяем статус с сервера
+            } else {
+                console.error('Ошибка обновления статуса привычки:', data.message);
+            }
+        } else {
+            console.error('Ошибка при выполнении запроса:', response.statusText);
         }
     } catch (error) {
-        console.error('Ошибка при отметке выполнения привычки:', error);
+        console.error('Ошибка при выполнении запроса:', error);
     }
 }
+
 
 // Функция для удаления привычки
 async function deleteHabit(habitId) {

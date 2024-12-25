@@ -199,15 +199,20 @@ def delete_habit(habit_id):
     return jsonify({"success": False, "message": "Habit not found"}), 404
 
 
-# Маршрут для отметки привычки как выполненной
+# Маршрут для переключения статуса привычки (выполнена/не выполнена)
 @app.route('/api/habits/<int:habit_id>/complete', methods=['PATCH'])
-def complete_habit(habit_id):
+def toggle_habit_complete(habit_id):
     habit = Habit.query.get(habit_id)
     if habit:
-        habit.completed = True
+        habit.completed = not habit.completed  # Переключаем значение completed
         db.session.commit()
-        return jsonify({"success": True, "message": "Habit marked as completed"})
+        return jsonify({
+            "success": True,
+            "message": "Habit status updated",
+            "completed": habit.completed
+        }), 200
     return jsonify({"success": False, "message": "Habit not found"}), 404
+
 
 
 

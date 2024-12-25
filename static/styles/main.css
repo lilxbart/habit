@@ -388,6 +388,31 @@ button.complete-habit[disabled] {
     color: #333;
 }
 
+
+
+
+
+
+
+.habit.completed {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .achievements-list {
     max-height: 300px;
     overflow-y: auto;
