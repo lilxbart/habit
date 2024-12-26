@@ -235,7 +235,6 @@ submitHabitButton.addEventListener('click', async () => {
 
     } catch (error) {
         console.error('Ошибка при отправке привычки:', error);
-        alert('Не удалось добавить привычку. Проверьте настройки сервера.');
     }
 });
 
@@ -380,32 +379,7 @@ function confirmDeleteHabit(habitId) {
         deleteModal.style.display = 'none';
     };
 }
-
-function confirmDeleteHabit(habitId) {
-    const deleteModal = document.getElementById('delete-confirm-modal');
-    const deleteMessage = document.getElementById('delete-confirm-message');
-    console.log("Delete message element:", deleteMessage);
-
-    if (!deleteMessage) {
-        console.error("Element with ID 'delete-confirm-message' not found in DOM");
-        return;
-    }
-
-    deleteMessage.textContent = "Вы уверены, что хотите удалить привычку навсегда?";
-    deleteModal.style.display = 'flex';
-
-    const confirmButton = document.getElementById('confirm-delete');
-    const cancelButton = document.getElementById('cancel-delete');
-
-    confirmButton.onclick = async () => {
-        await deleteHabit(habitId);
-        deleteModal.style.display = 'none';
-    };
-
-    cancelButton.onclick = () => {
-        deleteModal.style.display = 'none';
-    };
-}
+ 
 
 
 async function deleteHabit(habitId) {
@@ -555,68 +529,48 @@ async function getHabitsData() {
     }
 }
 
-async function updateProgress() {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) {
-        console.error("User ID not found in localStorage.");
-        return;
-    }
-
+async function updateProgressBars() {
     try {
-        const response = await fetch(`/api/progress?user_id=${userId}`);
-        if (!response.ok) {
-            console.error("API Error:", response.status, response.statusText);
-            return;
-        }
-
-        const data = await response.json();
-        console.log("[DEBUG] Progress data from API:", data);
-
-        // Проверяем, есть ли данные прогресса
-        if (data.daily_progress === undefined || data.monthly_progress === undefined) {
-            console.error("Progress data is missing or invalid:", data);
-            return;
-        }
-
-        // Находим элементы прогресса
-        const dailyProgressFill = document.querySelector('.daily-progress-fill');
-        const dailyProgressText = document.getElementById('progress-text');
-        const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
-        const monthlyProgressText = document.getElementById('monthly-progress-text');
-
-        if (!dailyProgressFill || !monthlyProgressFill) {
-            console.error("[DEBUG] Progress bar elements not found.");
-            return;
-        }
-
-        console.log("[DEBUG] Daily Progress Fill Element:", dailyProgressFill);
-        console.log("[DEBUG] Monthly Progress Fill Element:", monthlyProgressFill);
-
-        // Обновляем ширину и текст для прогресс-баров
-        dailyProgressFill.style.width = `${data.daily_progress}%`;
-        dailyProgressText.textContent = `${Math.round(data.daily_progress)}% Выполнено за день`;
-
-        monthlyProgressFill.style.width = `${data.monthly_progress}%`;
-        monthlyProgressText.textContent = `${Math.round(data.monthly_progress)}% Выполнено за месяц`;
-
-        console.log("[DEBUG] Updated progress bars:", {
-            dailyProgressWidth: dailyProgressFill.style.width,
-            monthlyProgressWidth: monthlyProgressFill.style.width,
-        });
+      const userId = localStorage.getItem('user_id'); 
+  
+      const response = await fetch(`/api/progress?user_id=${userId}`);
+      const data = await response.json();
+  
+      if (!data.success) {
+        console.error("Error in progress data:", data.message);
+        return;
+      }
+  
+      const dailyValue = Math.round(data.daily_progress) || 0;
+      const monthlyValue = Math.round(data.monthly_progress) || 0;
+  
+      // Находим элементы (убедитесь, что они не null)
+      if (dailyProgressFill) {
+        dailyProgressFill.style.width = dailyValue + "%";
+      }
+      if (dailyProgressText) {
+        dailyProgressText.textContent = `${dailyValue}% Выполнено`;
+      }
+  
+      if (monthlyProgressFill) {
+        monthlyProgressFill.style.width = monthlyValue + "%";
+      }
+      if (monthlyProgressText) {
+        monthlyProgressText.textContent = `${monthlyValue}% Выполнено`;
+      }
+  
     } catch (error) {
-        console.error("Error updating progress:", error);
+      console.error("Ошибка при получении прогресса:", error);
     }
-}
-
-
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    updateProgress();
-});
-setInterval(updateProgress, 300000);
-
-
+  }
+  
+  // Вызываем при загрузке
+  document.addEventListener('DOMContentLoaded', () => {
+    updateProgressBars();
+  
+    setInterval(updateProgressBars, 300);
+  });
+  
 
 
 const dailyProgressFill = document.querySelector('.daily-progress-fill');
@@ -627,6 +581,11 @@ const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
 const monthlyProgressText = document.getElementById('monthly-progress-text');
 console.log("[DEBUG] Monthly Progress Elements:", monthlyProgressFill, monthlyProgressText);
 
+// Проверяем, что всё не null
+console.log("[DEBUG] dailyProgressFill:", dailyProgressFill);
+console.log("[DEBUG] dailyProgressText:", dailyProgressText);
+console.log("[DEBUG] monthlyProgressFill:", monthlyProgressFill);
+console.log("[DEBUG] monthlyProgressText:", monthlyProgressText);
 
 
 

@@ -655,44 +655,49 @@ button#submit-habit:hover {
 }
 
 /* Прогресс-бар */
+/* Контейнер прогресса */
+.progress-container {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Прогресс-бар */
 .progress-bar {
     width: 100%;
-    height: 20px;
+    height: 25px;
     background-color: #e0e0e0;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
+    position: relative;
 }
 
 .progress-fill {
     height: 100%;
     background-color: #4CAF50;
     width: 0%;
-    border-radius: 10px;
-    transition: width 0.5s ease;
+    transition: width 0.5s ease-in-out;
 }
 
 #progress-text {
-    font-size: 18px;
+    margin-top: 5px;
+    font-size: 16px;
     color: #333;
-    margin-top: 10px;
-}
-
-#progress-container {
-    width: 100%;
-    background-color: #f3f3f3;
-    border-radius: 10px;
-    margin-top: 20px;
-}
-
-#progress-bar {
-    height: 20px;
-    width: 0%;
-    background-color: #4caf50;
-    border-radius: 10px;
     text-align: center;
-    color: white;
-    line-height: 20px;
 }
+
+  
+  /* Внутренняя «заливка» */
+  .progress-bar.daily-progress-fill,
+  .progress-bar.monthly-progress-fill {
+    background-color: #2d7539; /* цвет полосы */
+    width: 0%;                /* изначально 0 */
+    height: 100%;
+    transition: width 0.3s ease; 
+  }
+  
 
 /* Модальное окно профиля */
 form {

@@ -44,7 +44,6 @@ class Habit(db.Model):
     reminder_text = db.Column(db.String(255), nullable=True)
     reminder_time = db.Column(db.Time, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    completed = db.Column(db.Boolean, default=False)
     streak_count = db.Column(db.Integer, default=0)
 
     user = db.relationship('User', back_populates='habits')
@@ -181,59 +180,98 @@ def check_achievements_on_habit_completion(user_id):
 
 # Функция для расчета ежедневного прогресса
 def calculate_daily_progress(user_id):
-    today = datetime.utcnow().date()
-    print(f"[DEBUG] Calculating daily progress for user {user_id} on {today}")
+    # Берём "сегодня" по Москве:
+    local_tz = pytz.timezone('Europe/Moscow')
+    today = datetime.now(local_tz).date()
 
+    # Загружаем все привычки пользователя
     habits = Habit.query.filter_by(user_id=user_id).all()
-    print(f"[DEBUG] User {user_id} habits: {[habit.id for habit in habits]}")
+    if not habits:
+        return 0  # Если привычек нет, прогресс 0
 
+    # Карта для сопоставления weekday() -> "ПН, ВТ..."
+    days_map = {0: "ПН", 1: "ВТ", 2: "СР", 3: "ЧТ", 4: "ПТ", 5: "СБ", 6: "ВС"}
+    weekday_name = days_map[today.weekday()]
+
+    # Фильтруем привычки, которые должны выполняться именно в этот день недели
+    valid_habits = [
+        habit for habit in habits
+        if habit.recurrence  # вдруг пустое
+           and weekday_name in habit.recurrence.split(', ')
+    ]
+
+    if not valid_habits:
+        return 0  # Если на сегодня нет ни одной привычки по расписанию, прогресс 0
+
+    # Считаем, сколько из них пользователь реально выполнил (в HabitCompletion)
     completions_today = HabitCompletion.query.filter(
         HabitCompletion.date == today,
-        HabitCompletion.habit_id.in_([habit.id for habit in habits])
+        HabitCompletion.habit_id.in_([h.id for h in valid_habits])
     ).count()
-    print(f"[DEBUG] Completions today for user {user_id}: {completions_today}")
 
-    if len(habits) == 0:
-        print(f"[DEBUG] No habits found for user {user_id}")
-        return 0
-
-    daily_progress = (completions_today / len(habits)) * 100
-    print(f"[DEBUG] Daily progress for user {user_id}: {daily_progress}%")
+    # Вычисляем процент
+    daily_progress = (completions_today / len(valid_habits)) * 100
     return daily_progress
+
+
 
 
 # Функция для расчета месячного прогресса
 def calculate_monthly_progress(user_id):
-    """
-    Рассчитывает месячный прогресс пользователя.
-    """
-    today = datetime.utcnow().date()
+    local_tz = pytz.timezone('Europe/Moscow')
+    today = datetime.now(local_tz).date()
+
     habits = Habit.query.filter_by(user_id=user_id).all()
     if not habits:
         return 0
 
+    # Считаем, сколько дней в текущем месяце (аккуратно с декабрём)
     current_month = today.month
     current_year = today.year
-
-    # Рассчитываем количество дней в месяце с учетом года
+    # Если current_month == 12, надо отдельно считать. Но проще:
     if current_month == 12:
-        days_in_month = 31  # Декабрь всегда имеет 31 день
+        days_in_month = 31
     else:
-        days_in_month = (datetime(current_year, current_month + 1, 1) - timedelta(days=1)).day
+        # Примерно так: 1 число следующего месяца - 1 день
+        days_in_month = (datetime(current_year, current_month + 1, 1, tzinfo=local_tz)
+                         - timedelta(days=1)).day
 
-    completed_days = 0
+    # Карта для русского дня недели:
+    days_map = {0: "ПН", 1: "ВТ", 2: "СР", 3: "ЧТ", 4: "ПТ", 5: "СБ", 6: "ВС"}
+
+    fully_completed_days = 0  # сколько дней выполнены "на 100%"
+    days_with_habits = 0      # сколько дней вообще содержат запланированные привычки
+
     for day in range(1, days_in_month + 1):
-        date = datetime(current_year, current_month, day).date()
-        completions = HabitCompletion.query.filter(
-            HabitCompletion.date == date,
-            HabitCompletion.habit_id.in_([habit.id for habit in habits])
-        ).all()
+        date_ = datetime(current_year, current_month, day, tzinfo=local_tz).date()
+        day_of_week = days_map[date_.weekday()]
 
-        if completions and len(completions) == len(habits):
-            completed_days += 1
+        # Фильтруем привычки, которые должны выполняться в этот день недели
+        day_habits = [
+            h for h in habits
+            if h.recurrence
+               and day_of_week in h.recurrence.split(', ')
+        ]
+        if not day_habits:
+            # Если в этот день нет никаких привычек по расписанию — просто пропускаем
+            continue
 
-    monthly_progress = (completed_days / days_in_month) * 100
-    print(f"[DEBUG] Monthly progress for user {user_id}: {monthly_progress}%")
+        days_with_habits += 1
+
+        # Смотрим, все ли они выполнены (т.е. есть запись в HabitCompletion)
+        day_completions = HabitCompletion.query.filter(
+            HabitCompletion.date == date_,
+            HabitCompletion.habit_id.in_([h.id for h in day_habits])
+        ).count()
+
+        # Если количество выполненных == количеству запланированных, день закрыт полностью
+        if day_completions == len(day_habits):
+            fully_completed_days += 1
+
+    if days_with_habits == 0:
+        return 0
+
+    monthly_progress = (fully_completed_days / days_with_habits) * 100
     return monthly_progress
 
 
@@ -552,12 +590,14 @@ def get_progress():
         monthly_progress = calculate_monthly_progress(user_id)
 
         return jsonify({
+            "success": True,
             "daily_progress": daily_progress,
             "monthly_progress": monthly_progress
         })
     except Exception as e:
         print("Error calculating progress:", e)
         return jsonify({"success": False, "message": "Server error"}), 500
+
 
 
 
