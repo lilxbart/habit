@@ -324,13 +324,13 @@ function createHabitElement(habit, isToday) {
 
 // Переключение состояния привычки (выполнено/не выполнено)
 async function toggleHabitComplete(habitId, habitElement) {
-    const selectedDate = getLocalDate(); // Получаем текущую дату
+    const today = getLocalDate(new Date()); // Получаем текущую дату
 
     try {
         const response = await fetch(`/api/habits/${habitId}/complete`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selected_date: selectedDate })
+            body: JSON.stringify({ selected_date: today }) // Передаём текущую дату
         });
 
         if (response.ok) {
@@ -339,13 +339,14 @@ async function toggleHabitComplete(habitId, habitElement) {
             // Обновляем визуальное состояние привычки
             habitElement.classList.toggle('completed', data.completed);
 
-            // Обновляем счетчик серии
+            // Обновляем счётчик серии
             const streakElement = habitElement.querySelector('.habit-streak');
             if (streakElement) {
                 streakElement.textContent = `Серия: ${data.streak_count} дней`;
             }
         } else {
-            console.error('Ошибка при обновлении привычки:', response.statusText);
+            const error = await response.json();
+            console.error('Ошибка при обновлении привычки:', error.message);
         }
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
@@ -353,42 +354,23 @@ async function toggleHabitComplete(habitId, habitElement) {
 }
 
 
-// Удаление привычки с подтверждением
-function confirmDeleteHabit(habitId) {
-    const confirmModal = document.createElement('div');
-    confirmModal.classList.add('modal');
-    confirmModal.innerHTML = `
-        <div class="modal-content">
-            <p>Вы уверены, что хотите удалить привычку навсегда?</p>
-            <button id="confirm-delete">Да</button>
-            <button id="cancel-delete">Нет</button>
-        </div>
-    `;
-    document.body.appendChild(confirmModal);
-
-    confirmModal.querySelector('#confirm-delete').addEventListener('click', async () => {
-        await deleteHabit(habitId);
-        document.body.removeChild(confirmModal);
-        updateProgress();
-    });
-
-    confirmModal.querySelector('#cancel-delete').addEventListener('click', () => {
-        document.body.removeChild(confirmModal);
-    });
-}
-
 
 // Удаление привычки с подтверждением
 function confirmDeleteHabit(habitId) {
     const deleteModal = document.getElementById('delete-confirm-modal');
     const deleteMessage = document.getElementById('delete-confirm-message');
+
+    if (deleteMessage) {
+        deleteMessage.textContent = "Вы уверены, что хотите удалить привычку навсегда?";
+    } else {
+        console.error("Delete message element not found!");
+    }
+
+    deleteModal.style.display = 'flex';
+
     const confirmButton = document.getElementById('confirm-delete');
     const cancelButton = document.getElementById('cancel-delete');
 
-    deleteMessage.textContent = "Вы уверены, что хотите удалить привычку навсегда?";
-    deleteModal.style.display = 'flex';
-
-    // Добавляем обработчики кнопок
     confirmButton.onclick = async () => {
         await deleteHabit(habitId);
         deleteModal.style.display = 'none';
@@ -399,7 +381,33 @@ function confirmDeleteHabit(habitId) {
     };
 }
 
-// Удаление привычки
+function confirmDeleteHabit(habitId) {
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const deleteMessage = document.getElementById('delete-confirm-message');
+    console.log("Delete message element:", deleteMessage);
+
+    if (!deleteMessage) {
+        console.error("Element with ID 'delete-confirm-message' not found in DOM");
+        return;
+    }
+
+    deleteMessage.textContent = "Вы уверены, что хотите удалить привычку навсегда?";
+    deleteModal.style.display = 'flex';
+
+    const confirmButton = document.getElementById('confirm-delete');
+    const cancelButton = document.getElementById('cancel-delete');
+
+    confirmButton.onclick = async () => {
+        await deleteHabit(habitId);
+        deleteModal.style.display = 'none';
+    };
+
+    cancelButton.onclick = () => {
+        deleteModal.style.display = 'none';
+    };
+}
+
+
 async function deleteHabit(habitId) {
     try {
         const response = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' });
@@ -457,7 +465,7 @@ const achievements = [
         description: "Поддержи свою привычку как минимум 5 дней подряд!",
         img: "/assets/achievement3.png"
     },
-    // Добавьте больше достижений по необходимости
+    
 ];
 
 function sortAchievements() {
@@ -549,36 +557,75 @@ async function getHabitsData() {
 
 async function updateProgress() {
     const userId = localStorage.getItem('user_id');
-    if (!userId) return;
+    if (!userId) {
+        console.error("User ID not found in localStorage.");
+        return;
+    }
 
     try {
         const response = await fetch(`/api/progress?user_id=${userId}`);
-        if (!response.ok) throw new Error('Ошибка при загрузке прогресса');
-        const data = await response.json();
+        if (!response.ok) {
+            console.error("API Error:", response.status, response.statusText);
+            return;
+        }
 
-        // Ежедневный прогресс
+        const data = await response.json();
+        console.log("[DEBUG] Progress data from API:", data);
+
+        // Проверяем, есть ли данные прогресса
+        if (data.daily_progress === undefined || data.monthly_progress === undefined) {
+            console.error("Progress data is missing or invalid:", data);
+            return;
+        }
+
+        // Находим элементы прогресса
         const dailyProgressFill = document.querySelector('.daily-progress-fill');
-        const dailyProgressText = document.getElementById('daily-progress-text');
+        const dailyProgressText = document.getElementById('progress-text');
+        const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
+        const monthlyProgressText = document.getElementById('monthly-progress-text');
+
+        if (!dailyProgressFill || !monthlyProgressFill) {
+            console.error("[DEBUG] Progress bar elements not found.");
+            return;
+        }
+
+        console.log("[DEBUG] Daily Progress Fill Element:", dailyProgressFill);
+        console.log("[DEBUG] Monthly Progress Fill Element:", monthlyProgressFill);
+
+        // Обновляем ширину и текст для прогресс-баров
         dailyProgressFill.style.width = `${data.daily_progress}%`;
         dailyProgressText.textContent = `${Math.round(data.daily_progress)}% Выполнено за день`;
 
-        // Ежемесячный прогресс
-        const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
-        const monthlyProgressText = document.getElementById('monthly-progress-text');
         monthlyProgressFill.style.width = `${data.monthly_progress}%`;
         monthlyProgressText.textContent = `${Math.round(data.monthly_progress)}% Выполнено за месяц`;
+
+        console.log("[DEBUG] Updated progress bars:", {
+            dailyProgressWidth: dailyProgressFill.style.width,
+            monthlyProgressWidth: monthlyProgressFill.style.width,
+        });
     } catch (error) {
-        console.error('Ошибка при обновлении прогресса:', error);
+        console.error("Error updating progress:", error);
     }
 }
 
 
+
+
 document.addEventListener('DOMContentLoaded', () => {
     updateProgress();
-
-    // Обновляем прогресс каждые 30 секунд
-    setInterval(updateProgress, 30000);
 });
+setInterval(updateProgress, 300000);
+
+
+
+
+const dailyProgressFill = document.querySelector('.daily-progress-fill');
+const dailyProgressText = document.getElementById('daily-progress-text');
+console.log("[DEBUG] Daily Progress Elements:", dailyProgressFill, dailyProgressText);
+
+const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
+const monthlyProgressText = document.getElementById('monthly-progress-text');
+console.log("[DEBUG] Monthly Progress Elements:", monthlyProgressFill, monthlyProgressText);
 
 
 

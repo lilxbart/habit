@@ -5,12 +5,13 @@ body {
     padding: 0;
 }
 
+/* Шапка */
 header {
     background-color: #6f6a6a;
     color: white;
     text-align: left;
     padding: 10px;
-    position: relative; 
+    position: relative;
 }
 
 #date {
@@ -27,7 +28,7 @@ header {
     font-size: 18px;
 }
 
-
+/* Блок приветствия и иконки пользователя */
 .user-container {
     display: flex;
     align-items: center;
@@ -36,6 +37,7 @@ header {
     top: 10px;
     right: 20px;
 }
+
 .greeting-message {
     font-size: 18px;
     font-weight: bold;
@@ -57,6 +59,7 @@ header {
     opacity: 0.8;
 }
 
+/* Основная раскладка */
 .main-container {
     display: flex;
     padding: 20px;
@@ -64,8 +67,10 @@ header {
 }
 
 .left-container {
-    width: 70%; 
+    width: 70%;
     padding: 20px;
+    display: flex;
+    flex-direction: column; 
 }
 
 .right-container {
@@ -76,31 +81,28 @@ header {
     align-items: center;
 }
 
-/*календарь*/
+/* Календарь */
 .calendar-container {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     margin: 20px 0;
+    scroll-behavior: smooth;
 }
 
-button {
-    padding: 8px 12px;
-    border: none;
-    background-color: #d9d9d9;
-    border-radius: 4px;
-    cursor: pointer;
+.calendar-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.current-month {
+    font-size: 18px;
     font-weight: bold;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-button:hover {
-    background-color: #b5b5b5;
-}
-
-button:active {
-    transform: scale(0.95);
+    color: #333;
 }
 
 .calendar {
@@ -122,6 +124,26 @@ button:active {
     border-radius: 4px;
 }
 
+/* Кнопки (общие) */
+button {
+    padding: 8px 12px;
+    border: none;
+    background-color: #d9d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+    background-color: #b5b5b5;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* Отдельные стили для дней календаря */
 .day {
     text-align: center;
     min-width: 60px;
@@ -163,52 +185,25 @@ button:active {
     pointer-events: none;
 }
 
-
-.calendar-container {
-    scroll-behavior: smooth;
-}
-
-.calendar-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.current-month {
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-}
-
-
-
-
-
-
-
-
-
+/* Контейнер с привычками */
 .day-habits-container {
     margin-top: 5px;
     background-color: #f0f0f0;
     border-radius: 4px;
     padding: 5px;
-    min-height: 50px;
+    min-height: 2000px;
 }
 
-/*контейнер привычек*/
 .habits-scroll-container {
-    height: 100%;
+    height: 600px;
     overflow-y: auto;
     width: 100%;
     border-radius: 8px;
     padding-right: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    margin-bottom: 20px;
     position: relative;
-    z-index: 1; /* Убедитесь, что содержимое остаётся над фоном */
+    z-index: 1;
 }
 
 .habits-scroll-container::before {
@@ -222,9 +217,9 @@ button:active {
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    opacity: 0.3; /* Прозрачность фона */
+    opacity: 0.3;
     border-radius: 8px;
-    z-index: -1; /* Помещаем фон под содержимое */
+    z-index: -1;
 }
 
 .habits-container {
@@ -275,6 +270,7 @@ button:active {
     color: #888;
 }
 
+/* Кнопки внутри привычек */
 .habit-actions {
     display: flex;
     align-items: center;
@@ -312,13 +308,12 @@ button.complete-habit:hover {
     background-color: #45a049;
 }
 
-
 button.complete-habit[disabled] {
     background-color: #ccc;
     cursor: not-allowed;
 }
 
-
+/* Состояние "завершено" */
 .habit-completed {
     opacity: 0.7;
     background-color: #d4edda;
@@ -328,7 +323,14 @@ button.complete-habit[disabled] {
     background-color: #a5d6a7;
 }
 
+/* Когда привычка завершена */
+.habit.completed {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
 
+/* Кнопка добавления привычки */
 #add-habit-button {
     padding: 10px 20px;
     background-color: #555555;
@@ -343,6 +345,7 @@ button.complete-habit[disabled] {
     background-color: #2b2b2b;
 }
 
+/* Модальное окно подтверждения удаления */
 #delete-confirm-modal {
     display: none;
     position: fixed;
@@ -360,12 +363,33 @@ button.complete-habit[disabled] {
     background-color: #fefefe;
     padding: 20px;
     border-radius: 10px;
-    width: 300px;
+    width: 300px; /* зафиксируем ширину для сохранения внешнего вида */
     text-align: center;
 }
 
+#delete-confirm-message {
+    display: block;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+
+/* Контейнеры для прогресса и наград */
 .progress-container {
     margin-bottom: 20px;
+    width: 100%;
+    background-color: #f4f4f4;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.progress-container h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #333;
 }
 
 .chart {
@@ -394,11 +418,6 @@ button.complete-habit[disabled] {
 
 
 
-.habit.completed {
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-}
 
 
 
@@ -409,12 +428,9 @@ button.complete-habit[disabled] {
 
 
 
-
-
-
-
+/* Достижения */
 .achievements-list {
-    max-height: 300px;
+    height: 300px;
     overflow-y: auto;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -459,6 +475,7 @@ button.complete-habit[disabled] {
     transition: filter 0.3s ease;
 }
 
+/* Модальное окно для достижений */
 #achievement-modal {
     display: none;
     position: fixed;
@@ -522,29 +539,32 @@ button.complete-habit[disabled] {
     color: #555;
 }
 
-#achievement-modal .close-achievement-button:hover {
-    color: red;
-}
-
+/* Базовый модальный контейнер (объединён для всех случаев) */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1;
+    z-index: 1; /* может быть выше, если нужно перекрыть всё остальное */
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
+    overflow: auto; /* важно, чтобы длинное содержимое прокручивалось */
     background-color: rgba(0, 0, 0, 0.5);
+    padding-top: 50px; /* отступ сверху, чтобы содержимое располагалось чуть ниже */
     justify-content: center;
     align-items: center;
 }
 
+/* Общее оформление контента внутри модалки */
 .modal-content {
-    background-color: #fefefe;
+    background-color: #fff;
+    margin: 5% auto;
     padding: 20px;
     border-radius: 10px;
-    width: 400px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
     position: relative;
 }
 
@@ -556,6 +576,7 @@ button.complete-habit[disabled] {
     cursor: pointer;
 }
 
+/* Поля ввода */
 label {
     display: block;
     margin-top: 15px;
@@ -576,6 +597,7 @@ textarea {
     resize: none;
 }
 
+/* Повторяемость привычки */
 .habit-recurrence {
     display: flex;
     flex-wrap: wrap;
@@ -591,10 +613,16 @@ textarea {
     cursor: pointer;
 }
 
+.habit-recurrence button.selected {
+    background-color: #555555;
+    color: white;
+}
+
 .habit-recurrence button:hover {
     background-color: #bbb;
 }
 
+/* Напоминания о привычках */
 .habit-reminder-toggle {
     margin-top: 10px;
     display: flex;
@@ -610,6 +638,7 @@ input[type="time"] {
     border: 1px solid #ccc;
 }
 
+/* Кнопка создания привычки (внутри модалки) */
 button#submit-habit {
     width: 100%;
     padding: 10px;
@@ -625,30 +654,7 @@ button#submit-habit:hover {
     background-color: #2b2b2b;
 }
 
-.habit-recurrence button.selected {
-    background-color: #555555;
-    color: white;
-}
-
-.habit-recurrence button:hover {
-    background-color: #bbb;
-}
-
-.progress-container {
-    margin-bottom: 20px;
-    width: 100%;
-    background-color: #f4f4f4;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.progress-container h2 {
-    font-size: 24px;
-    margin-bottom: 10px;
-    color: #333;
-}
-
+/* Прогресс-бар */
 .progress-bar {
     width: 100%;
     height: 20px;
@@ -688,53 +694,7 @@ button#submit-habit:hover {
     line-height: 20px;
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding-top: 50px;
-}
-
-.modal-content {
-    background-color: #fff;
-    margin: 5% auto;
-    padding: 20px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    font-family: 'Arial', sans-serif;
-}
-
-.modal-content h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #333;
-    text-align: center;
-}
-
-.close-button {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    color: #aaa;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    background: none;
-}
-
-.close-button:hover {
-    color: black;
-}
-
+/* Модальное окно профиля */
 form {
     display: flex;
     flex-direction: column;
@@ -748,7 +708,6 @@ form label {
     display: block;
 }
 
-input[type="text"],
 input[type="email"],
 input[type="file"] {
     width: 100%;

@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
+import pytz
 from werkzeug.utils import secure_filename
 from sqlalchemy import Column, Integer, String, LargeBinary, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
@@ -97,6 +98,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_local_date():
+    local_tz = pytz.timezone('Europe/Moscow')
+    return datetime.now(local_tz).date()
 
 # Инициализация достижений
 def initialize_achievements():
@@ -175,7 +179,68 @@ def check_achievements_on_habit_completion(user_id):
     # Добавьте другие условия для достижений, если необходимо
 
 
-# Маршруты
+# Функция для расчета ежедневного прогресса
+def calculate_daily_progress(user_id):
+    today = datetime.utcnow().date()
+    print(f"[DEBUG] Calculating daily progress for user {user_id} on {today}")
+
+    habits = Habit.query.filter_by(user_id=user_id).all()
+    print(f"[DEBUG] User {user_id} habits: {[habit.id for habit in habits]}")
+
+    completions_today = HabitCompletion.query.filter(
+        HabitCompletion.date == today,
+        HabitCompletion.habit_id.in_([habit.id for habit in habits])
+    ).count()
+    print(f"[DEBUG] Completions today for user {user_id}: {completions_today}")
+
+    if len(habits) == 0:
+        print(f"[DEBUG] No habits found for user {user_id}")
+        return 0
+
+    daily_progress = (completions_today / len(habits)) * 100
+    print(f"[DEBUG] Daily progress for user {user_id}: {daily_progress}%")
+    return daily_progress
+
+
+# Функция для расчета месячного прогресса
+def calculate_monthly_progress(user_id):
+    """
+    Рассчитывает месячный прогресс пользователя.
+    """
+    today = datetime.utcnow().date()
+    habits = Habit.query.filter_by(user_id=user_id).all()
+    if not habits:
+        return 0
+
+    current_month = today.month
+    current_year = today.year
+
+    # Рассчитываем количество дней в месяце с учетом года
+    if current_month == 12:
+        days_in_month = 31  # Декабрь всегда имеет 31 день
+    else:
+        days_in_month = (datetime(current_year, current_month + 1, 1) - timedelta(days=1)).day
+
+    completed_days = 0
+    for day in range(1, days_in_month + 1):
+        date = datetime(current_year, current_month, day).date()
+        completions = HabitCompletion.query.filter(
+            HabitCompletion.date == date,
+            HabitCompletion.habit_id.in_([habit.id for habit in habits])
+        ).all()
+
+        if completions and len(completions) == len(habits):
+            completed_days += 1
+
+    monthly_progress = (completed_days / days_in_month) * 100
+    print(f"[DEBUG] Monthly progress for user {user_id}: {monthly_progress}%")
+    return monthly_progress
+
+
+
+
+
+#МАРШРУТЫ
 
 # Главная страница для регистрации
 @app.route('/')
@@ -302,18 +367,27 @@ def get_habits(user_id):
             return jsonify({"success": False, "message": "User not found"}), 404
 
         habits = Habit.query.filter_by(user_id=user_id).all()
-        habits_list = [{
-            "id": habit.id,
-            "name": habit.name,
-            "description": habit.description,
-            "recurrence": habit.recurrence,
-            "reminder_text": habit.reminder_text,
-            "reminder_time": habit.reminder_time.strftime('%H:%M') if habit.reminder_time else None,
-            "date_created": habit.date_created.strftime('%Y-%m-%d %H:%M:%S'),
-            "completed": habit.completed
-        } for habit in habits]
+        habits_list = []
+        today = datetime.utcnow().date()
 
-        print(f"Habits for user {user_id}: {habits_list}")  # Лог для отладки
+        for habit in habits:
+            # Проверяем выполнение привычки для текущей даты
+            completed_today = HabitCompletion.query.filter_by(
+                habit_id=habit.id,
+                date=today
+            ).first() is not None
+
+            habits_list.append({
+                "id": habit.id,
+                "name": habit.name,
+                "description": habit.description,
+                "recurrence": habit.recurrence,
+                "reminder_text": habit.reminder_text,
+                "reminder_time": habit.reminder_time.strftime('%H:%M') if habit.reminder_time else None,
+                "date_created": habit.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                "completed": completed_today,  # Проверка выполнения
+                "streak_count": habit.streak_count,
+            })
 
         return jsonify({"success": True, "habits": habits_list}), 200
     except Exception as e:
@@ -371,7 +445,6 @@ def toggle_habit_complete(habit_id):
 
     db.session.commit()
     return jsonify({"success": True, "completed": not completion, "streak_count": habit.streak_count})
-
 
 # Маршрут для обновления профиля
 @app.route('/api/update-profile', methods=['POST'])
@@ -467,46 +540,25 @@ def get_user_achievements(user_id):
 
 
 
+# Маршрут для получения прогресса
 @app.route('/api/progress', methods=['GET'])
 def get_progress():
     user_id = request.args.get('user_id')
     if not user_id:
         return jsonify({"success": False, "message": "User ID is required"}), 400
 
-    habits = Habit.query.filter_by(user_id=user_id).all()
-    if not habits:
-        return jsonify({"daily_progress": 0, "monthly_progress": 0})
+    try:
+        daily_progress = calculate_daily_progress(user_id)
+        monthly_progress = calculate_monthly_progress(user_id)
 
-    # Ежедневный прогресс
-    today = datetime.utcnow().date()
-    completions_today = HabitCompletion.query.filter(
-        HabitCompletion.date == today,
-        HabitCompletion.habit_id.in_([habit.id for habit in habits])
-    ).count()
-    daily_progress = (completions_today / len(habits)) * 100 if habits else 0
+        return jsonify({
+            "daily_progress": daily_progress,
+            "monthly_progress": monthly_progress
+        })
+    except Exception as e:
+        print("Error calculating progress:", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-    # Ежемесячный прогресс
-    current_month = today.month
-    current_year = today.year
-    days_in_month = (datetime(current_year, current_month + 1, 1) - timedelta(days=1)).day
-
-    completed_days = 0
-    for day in range(1, days_in_month + 1):
-        date = datetime(current_year, current_month, day).date()
-        completions = HabitCompletion.query.filter(
-            HabitCompletion.date == date,
-            HabitCompletion.habit_id.in_([habit.id for habit in habits])
-        ).all()
-
-        if completions and len(completions) == len(habits):
-            completed_days += 1
-
-    monthly_progress = (completed_days / days_in_month) * 100
-
-    return jsonify({
-        "daily_progress": daily_progress,
-        "monthly_progress": monthly_progress
-    })
 
 
 
