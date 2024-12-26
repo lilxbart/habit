@@ -23,37 +23,41 @@ function getLocalDate(date = new Date()) {
 
 // Инициализация отображения привычек при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    const today = getLocalDate(); // Получаем локальную дату
+    const today = getLocalDate();
     selectedDate = today;
 
-    // Находим и выделяем текущий день в календаре
-    const activeDayElement = document.querySelector(`.day[data-date="${selectedDate}"]`);
-    if (activeDayElement) {
-        document.querySelectorAll('.day').forEach(day => day.classList.remove('selected'));
-        activeDayElement.classList.add('selected');
-        activeDayElement.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-    } else {
-        console.error('Не удалось найти текущий день в календаре');
-    }
-
-    setupDateSelection(); // Установка обработчиков выбора даты
-    updateCalendar(); // Обновляем календарь
-    displayHabitsForSelectedDate(); // Отображение привычек для выбранного дня
-    setCurrentDate(); // Установка текущей даты в заголовке
+    // Обновляем календарь
+    updateCalendar();
+    // Ставим визуальный фокус на сегодняшний день
+    highlightSelectedDay(selectedDate);
+    // Отображаем привычки
+    displayHabitsForSelectedDate();
+    // Установка текущей даты в заголовке
+    setCurrentDate();
+    // Обновляем прогресс
+    updateProgressBars();
+    // Загружаем достижения сразу
+    updateAchievementsUI();
 });
 
-// Обновление привычек при выборе даты
+// Выделяем выбранный день в календаре
+function highlightSelectedDay(dateString) {
+    const allDays = document.querySelectorAll('.day');
+    allDays.forEach(d => d.classList.remove('selected'));
+    const activeDayElement = document.querySelector(`.day[data-date="${dateString}"]`);
+    if (activeDayElement) {
+        activeDayElement.classList.add('selected');
+        activeDayElement.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+    }
+}
+
+// Обработчики календаря
 function setupDateSelection() {
     document.querySelectorAll('.day').forEach(day => {
         day.addEventListener('click', (event) => {
-            event.preventDefault(); // Предотвращаем стандартное поведение
+            event.preventDefault();
             selectedDate = day.getAttribute('data-date');
-
-            // Убираем выделение со всех дней
-            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
-
-            // Выделяем выбранный день
-            day.classList.add('selected');
+            highlightSelectedDay(selectedDate);
             displayHabitsForSelectedDate();
         });
     });
@@ -71,10 +75,10 @@ function updateCurrentMonth() {
     currentMonthElement.textContent = `${monthName} ${year}`;
 }
 
-// Обновление календаря с правильным выбором текущего дня
+// Обновление календаря
 function updateCalendar() {
     const calendarContainer = document.getElementById('calendar');
-    calendarContainer.innerHTML = ''; // Очищаем календарь
+    calendarContainer.innerHTML = '';
 
     updateCurrentMonth();
 
@@ -85,25 +89,18 @@ function updateCalendar() {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
         const dayElement = createDayElement(date);
         calendarContainer.appendChild(dayElement);
-
-        // Если текущая дата, выделяем её
-        if (getLocalDate(date) === selectedDate) {
-            dayElement.classList.add('selected');
-        }
     }
-
-    displayHabitsForSelectedDate();
+    setupDateSelection();
 }
-
 
 function createDayElement(date) {
     const dayElement = document.createElement('div');
     dayElement.classList.add('day');
 
-    const localDate = getLocalDate(date); // Получаем локальную дату
+    const localDate = getLocalDate(date);
     dayElement.setAttribute('data-date', localDate);
 
-    const dayIndex = getDayIndex(date); // Индекс дня недели (ПН = 0, ВС = 6)
+    const dayIndex = getDayIndex(date);
     const dayName = daysOfWeek[dayIndex];
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -111,26 +108,20 @@ function createDayElement(date) {
     dayElement.innerHTML = `
         ${dayName}<br><span>${day}.${month}</span>
     `;
-
-    dayElement.addEventListener('click', () => {
-        document.querySelectorAll('.day').forEach((d) => d.classList.remove('selected'));
-        dayElement.classList.add('selected');
-        selectedDate = localDate; // Устанавливаем локальную дату как выбранную
-        displayHabitsForSelectedDate();
-    });
-
     return dayElement;
 }
 
 document.getElementById('prev-month').addEventListener('click', () => {
     currentMonth.setMonth(currentMonth.getMonth() - 1);
     updateCalendar();
+    highlightSelectedDay(selectedDate);
     displayHabitsForSelectedDate();
 });
 
 document.getElementById('next-month').addEventListener('click', () => {
     currentMonth.setMonth(currentMonth.getMonth() + 1);
     updateCalendar();
+    highlightSelectedDay(selectedDate);
     displayHabitsForSelectedDate();
 });
 
@@ -138,14 +129,10 @@ document.getElementById('next-month').addEventListener('click', () => {
 function setCurrentDate() {
     const currentDateElement = document.getElementById('current-date');
     const today = new Date();
-
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = today.toLocaleDateString('ru-RU', options);
-
     currentDateElement.textContent = formattedDate;
 }
-
-
 
 // ПРИВЫЧКИ - создание
 addHabitButton.addEventListener('click', () => {
@@ -166,18 +153,16 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Обработчики для выбора дней в модальном окне
+// Кнопки повторения
 const recurrenceButtons = document.querySelectorAll('.habit-recurrence button');
 let selectedDays = [];
 
 recurrenceButtons.forEach(button => {
     button.addEventListener('click', (event) => {
-        event.preventDefault(); // Предотвращаем стандартное поведение
-        event.stopPropagation(); // Останавливаем всплытие событий
+        event.preventDefault();
+        event.stopPropagation();
 
         const day = button.textContent;
-
-        // Добавляем или удаляем день из выбранных
         if (selectedDays.includes(day)) {
             selectedDays = selectedDays.filter(selectedDay => selectedDay !== day);
             button.classList.remove('selected');
@@ -188,13 +173,12 @@ recurrenceButtons.forEach(button => {
     });
 });
 
-// Форма новой привычки
+// Форма создания новой привычки
 submitHabitButton.addEventListener('click', async () => {
     const habitName = document.getElementById('habit-name').value.trim();
     const habitDescription = document.getElementById('habit-description').value.trim();
     const reminder = document.getElementById('habit-reminder').checked;
     const time = document.getElementById('habit-time').value;
-    const startDate = selectedDate;
 
     if (!habitName) {
         alert('Введите название привычки!');
@@ -208,15 +192,13 @@ submitHabitButton.addEventListener('click', async () => {
         reminder_text: reminder ? `Напоминание: ${time}` : null,
         reminder_time: time || null,
         recurrence: selectedDays.join(', ') || 'Нет',
-        startDate: startDate
+        // Можно передавать дату старта, если нужно
     };
 
     try {
         const response = await fetch('/api/habits', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newHabit),
         });
 
@@ -228,10 +210,10 @@ submitHabitButton.addEventListener('click', async () => {
         const result = await response.json();
         console.log('Привычка успешно добавлена:', result);
 
-        // Закрываем модальное окно и обновляем список привычек
         modal.style.display = 'none';
         displayHabitsForSelectedDate();
-        updateProgress();
+        updateProgressBars();
+        updateAchievementsUI(); // обновляем список достижений
 
     } catch (error) {
         console.error('Ошибка при отправке привычки:', error);
@@ -250,13 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-
-
-
-
-
-// ПРИВЫЧКИ - отображение
-// Функция для получения привычек с сервера
+// Получение привычек с сервера
 async function fetchHabits(userId) {
     try {
         const response = await fetch(`/api/habits/${userId}`);
@@ -269,33 +245,30 @@ async function fetchHabits(userId) {
     }
 }
 
-// Логика отображения привычек для выбранной даты
+// Отображение привычек для выбранной даты
 async function displayHabitsForSelectedDate() {
     const userId = localStorage.getItem('user_id');
     if (!userId) return console.error('Не найден user_id');
 
     const habits = await fetchHabits(userId);
     const habitsContainer = document.getElementById('habits-container');
-    habitsContainer.innerHTML = ''; // Очистка контейнера
+    habitsContainer.innerHTML = '';
 
     const selectedYear = currentMonth.getFullYear();
     const selectedMonth = currentMonth.getMonth();
 
     habits.forEach(habit => {
         const habitDates = getDatesFromRecurrence(habit.recurrence || '', selectedYear, selectedMonth);
-        const habitStartDate = habit.date_created.split(' ')[0];
+        const habitStartDate = habit.date_created.split(' ')[0]; // YYYY-MM-DD
 
-        if (
-            habitDates.includes(selectedDate) &&
-            selectedDate >= habitStartDate
-        ) {
+        if (habitDates.includes(selectedDate) && selectedDate >= habitStartDate) {
             const habitElement = createHabitElement(habit, selectedDate === getLocalDate());
             habitsContainer.appendChild(habitElement);
         }
     });
 }
 
-// Функция создания элемента привычки
+// Создание элемента привычки
 function createHabitElement(habit, isToday) {
     const habitDiv = document.createElement('div');
     habitDiv.classList.add('habit');
@@ -308,8 +281,8 @@ function createHabitElement(habit, isToday) {
             <p class="habit-streak">Серия: ${habit.streak_count || 0} дней</p>
         </div>
         <div class="habit-actions">
-            ${isToday ? `<button class="complete-habit" data-id="${habit.id}">✅</button>` : ''}
-            ${isToday ? `<button class="delete-habit" data-id="${habit.id}">❌</button>` : ''}
+            ${isToday ? `<button class="complete-habit" data-id="${habit.id}">+</button>` : ''}
+            ${isToday ? `<button class="delete-habit" data-id="${habit.id}">-</button>` : ''}
         </div>
     `;
 
@@ -321,28 +294,30 @@ function createHabitElement(habit, isToday) {
     return habitDiv;
 }
 
-// Переключение состояния привычки (выполнено/не выполнено)
+// Переключение состояния привычки
 async function toggleHabitComplete(habitId, habitElement) {
-    const today = getLocalDate(new Date()); // Получаем текущую дату
+    const today = getLocalDate(new Date());
 
     try {
         const response = await fetch(`/api/habits/${habitId}/complete`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selected_date: today }) // Передаём текущую дату
+            body: JSON.stringify({ selected_date: today })
         });
 
         if (response.ok) {
             const data = await response.json();
 
-            // Обновляем визуальное состояние привычки
             habitElement.classList.toggle('completed', data.completed);
-
-            // Обновляем счётчик серии
             const streakElement = habitElement.querySelector('.habit-streak');
             if (streakElement) {
                 streakElement.textContent = `Серия: ${data.streak_count} дней`;
             }
+
+            updateProgressBars();
+            // Обновляем достижения (если вдруг разблокировалось что-то новое)
+            updateAchievementsUI();
+
         } else {
             const error = await response.json();
             console.error('Ошибка при обновлении привычки:', error.message);
@@ -351,8 +326,6 @@ async function toggleHabitComplete(habitId, habitElement) {
         console.error('Ошибка при выполнении запроса:', error);
     }
 }
-
-
 
 // Удаление привычки с подтверждением
 function confirmDeleteHabit(habitId) {
@@ -379,14 +352,12 @@ function confirmDeleteHabit(habitId) {
         deleteModal.style.display = 'none';
     };
 }
- 
-
 
 async function deleteHabit(habitId) {
     try {
         const response = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' });
         if (response.ok) {
-            displayHabitsForSelectedDate(); // Обновляем список привычек
+            displayHabitsForSelectedDate();
         } else {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Ошибка при удалении привычки');
@@ -396,13 +367,10 @@ async function deleteHabit(habitId) {
     }
 }
 
-
-
 // Преобразование повторяющихся дней недели в даты
 function getDatesFromRecurrence(recurrence, year, month) {
     const daysMap = { "ПН": 1, "ВТ": 2, "СР": 3, "ЧТ": 4, "ПТ": 5, "СБ": 6, "ВС": 0 };
     const days = recurrence.split(', ').map(day => daysMap[day]);
-
     const dates = [];
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -415,46 +383,82 @@ function getDatesFromRecurrence(recurrence, year, month) {
     return dates;
 }
 
+// ПРОГРЕСС
+async function updateProgressBars() {
+    try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) return;
 
+        const response = await fetch(`/api/progress?user_id=${userId}`);
+        const data = await response.json();
 
+        if (!data.success) {
+            console.error("Ошибка данных прогресса:", data.message);
+            return;
+        }
 
+        const dailyValue = Math.round(data.daily_progress) || 0;
+        const monthlyValue = Math.round(data.monthly_progress) || 0;
 
-// ДОСТИЖЕНИЯ
-const achievements = [
-    {
-        name: "Первые шаги",
-        achieved: false,
-        description: "Сделай первый шаг к своим целям, начни отслеживать хотя бы одну привычку.",
-        img: "/assets/achievement1.png"
-    },
-    {
-        name: "Мастер планирования",
-        achieved: false,
-        description: "Заведи привычки на месяц, заполнив свой календарь целей и задач.",
-        img: "/assets/achievement2.png"
-    },
-    {
-        name: "Пять дней подряд",
-        achieved: false,
-        description: "Поддержи свою привычку как минимум 5 дней подряд!",
-        img: "/assets/achievement3.png"
-    },
-    
-];
+        if (dailyProgressFill) {
+            dailyProgressFill.style.width = dailyValue + "%";
+        }
+        if (dailyProgressText) {
+            dailyProgressText.textContent = `${dailyValue}% Выполнено`;
+        }
+        if (monthlyProgressFill) {
+            monthlyProgressFill.style.width = monthlyValue + "%";
+        }
+        if (monthlyProgressText) {
+            monthlyProgressText.textContent = `${monthlyValue}% Выполнено`;
+        }
 
-function sortAchievements() {
-    return achievements.sort((a, b) => b.achieved - a.achieved);
+    } catch (error) {
+        console.error("Ошибка при получении прогресса:", error);
+    }
 }
 
-function displayAchievements() {
+const dailyProgressFill = document.querySelector('.daily-progress-fill');
+const dailyProgressText = document.getElementById('daily-progress-text');
+const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
+const monthlyProgressText = document.getElementById('monthly-progress-text');
+
+// ДОСТИЖЕНИЯ (из БД)
+// 1. Фетчим с сервера /api/achievements/<user_id>
+async function fetchUserAchievements() {
+    try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) return [];
+
+        const response = await fetch(`/api/achievements/${userId}`);
+        if (!response.ok) {
+            console.error("Ошибка при загрузке достижений:", response.status);
+            return [];
+        }
+        const data = await response.json();
+        // data.achievements — массив вида:
+        // [{id, name, description, img, achieved, achieved_date}, ...]
+        return data.achievements || [];
+    } catch (error) {
+        console.error("Ошибка при загрузке достижений:", error);
+        return [];
+    }
+}
+
+// 2. Обновляем UI, опираясь на реальные данные
+async function updateAchievementsUI() {
     const achievementsList = document.querySelector('.achievements-list');
-    const sortedAchievements = sortAchievements();
+    if (!achievementsList) {
+        // Если на странице нет .achievements-list, можно просто выйти
+        return;
+    }
+
+    const achievementsFromServer = await fetchUserAchievements();
     achievementsList.innerHTML = '';
 
-    sortedAchievements.forEach(achievement => {
+    achievementsFromServer.forEach(achievement => {
         const div = document.createElement('div');
         div.classList.add('achievement');
-
         if (achievement.achieved) {
             div.classList.add('earned');
         } else {
@@ -464,9 +468,9 @@ function displayAchievements() {
         const img = document.createElement('img');
         img.src = achievement.img;
         img.alt = achievement.name;
-
         div.appendChild(img);
 
+        // При клике открываем модалку с деталями
         div.addEventListener('click', () => {
             showAchievementDetails(achievement);
         });
@@ -475,6 +479,7 @@ function displayAchievements() {
     });
 }
 
+// 3. Модалка деталей достижения
 function showAchievementDetails(achievement) {
     const modal = document.getElementById('achievement-modal');
     const title = document.getElementById('achievement-title');
@@ -492,10 +497,8 @@ function showAchievementDetails(achievement) {
     description.textContent = achievement.description;
     modal.style.display = 'flex';
 
-    // Удаление предыдущих обработчиков, чтобы избежать множественных вызовов
     const newCloseButton = closeButton.cloneNode(true);
     closeButton.parentNode.replaceChild(newCloseButton, closeButton);
-
     newCloseButton.addEventListener('click', () => {
         modal.style.display = 'none';
     });
@@ -507,105 +510,19 @@ function showAchievementDetails(achievement) {
     });
 }
 
-window.onload = function() {
-    displayAchievements();
-};
-
-
-
-
-// ПРОГРЕСС
-async function getHabitsData() {
-    try {
-        const userId = localStorage.getItem('user_id');
-        if (!userId) throw new Error('User ID not found in localStorage');
-
-        const response = await fetch(`/api/habits/${userId}`);
-        const data = await response.json();
-        return data.habits;
-    } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-        return [];
-    }
-}
-
-async function updateProgressBars() {
-    try {
-      const userId = localStorage.getItem('user_id'); 
-  
-      const response = await fetch(`/api/progress?user_id=${userId}`);
-      const data = await response.json();
-  
-      if (!data.success) {
-        console.error("Error in progress data:", data.message);
-        return;
-      }
-  
-      const dailyValue = Math.round(data.daily_progress) || 0;
-      const monthlyValue = Math.round(data.monthly_progress) || 0;
-  
-      // Находим элементы (убедитесь, что они не null)
-      if (dailyProgressFill) {
-        dailyProgressFill.style.width = dailyValue + "%";
-      }
-      if (dailyProgressText) {
-        dailyProgressText.textContent = `${dailyValue}% Выполнено`;
-      }
-  
-      if (monthlyProgressFill) {
-        monthlyProgressFill.style.width = monthlyValue + "%";
-      }
-      if (monthlyProgressText) {
-        monthlyProgressText.textContent = `${monthlyValue}% Выполнено`;
-      }
-  
-    } catch (error) {
-      console.error("Ошибка при получении прогресса:", error);
-    }
-  }
-  
-  // Вызываем при загрузке
-  document.addEventListener('DOMContentLoaded', () => {
-    updateProgressBars();
-  
-    setInterval(updateProgressBars, 300);
-  });
-  
-
-
-const dailyProgressFill = document.querySelector('.daily-progress-fill');
-const dailyProgressText = document.getElementById('daily-progress-text');
-console.log("[DEBUG] Daily Progress Elements:", dailyProgressFill, dailyProgressText);
-
-const monthlyProgressFill = document.querySelector('.monthly-progress-fill');
-const monthlyProgressText = document.getElementById('monthly-progress-text');
-console.log("[DEBUG] Monthly Progress Elements:", monthlyProgressFill, monthlyProgressText);
-
-// Проверяем, что всё не null
-console.log("[DEBUG] dailyProgressFill:", dailyProgressFill);
-console.log("[DEBUG] dailyProgressText:", dailyProgressText);
-console.log("[DEBUG] monthlyProgressFill:", monthlyProgressFill);
-console.log("[DEBUG] monthlyProgressText:", monthlyProgressText);
-
-
-
-
-
 // Профиль пользователя
 const userProfileModal = document.getElementById('user-profile-modal');
 const avatarInput = document.getElementById('avatar');
 const avatarPreview = document.getElementById('avatar-img');
 const saveProfileButton = document.getElementById('save-profile');
-const userIcon = document.getElementById('user-icon'); // Ваш аватар пользователя
+const userIcon = document.getElementById('user-icon');
 const closeProfileModalButton = userProfileModal.querySelector('.close-button');
 
-// Открытие модального окна профиля
 userIcon.addEventListener('click', async () => {
     userProfileModal.style.display = 'flex';
-    await loadUserProfile(); // Загружаем данные с сервера
+    await loadUserProfile();
 });
 
-// Закрытие модального окна профиля
 closeProfileModalButton.addEventListener('click', () => {
     userProfileModal.style.display = 'none';
 });
@@ -616,7 +533,6 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Предпросмотр аватара
 avatarInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -629,7 +545,6 @@ avatarInput.addEventListener('change', (event) => {
     }
 });
 
-// Загрузка данных пользователя с сервера
 async function loadUserProfile() {
     const username = localStorage.getItem('username');
     if (!username) {
@@ -653,7 +568,6 @@ async function loadUserProfile() {
     }
 }
 
-// Сохранение данных пользователя на сервере
 saveProfileButton.addEventListener('click', async (event) => {
     event.preventDefault();
 
